@@ -26,29 +26,31 @@ body { background-color: var(--bg-main); color: #f8fafc; font-family: 'Inter', s
 .metric-value { font-size: 1.8rem; font-weight: 800; margin-top: 0.4rem; color: #fff; }
 
 /* FORM LEGIBILITY FIX */
-label.small.text-muted, .stat-card h5, .label { 
-    color: #e2e8f0 !important; 
-    font-weight: 700 !important; 
+label.small.text-muted { 
+    color: var(--form-label) !important; 
+    font-weight: 600 !important; 
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    opacity: 1 !important;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
 }
 
 .form-control, .form-select {
-    background-color: #030712 !important; 
-    border: 1px solid #475569 !important; 
-    color: #ffffff !important; /* This is the color when you TYPE */
+    background-color: #030712 !important; /* Even darker for contrast */
+    border: 1px solid #475569 !important; /* Lighter border */
+    color: #ffffff !important; 
     font-weight: 500 !important;
+    padding: 10px 12px;
 }
 
-.form-control::-webkit-input-placeholder { color: #94a3b8 !important; opacity: 1 !important; }
-.form-control::-moz-placeholder { color: #94a3b8 !important; opacity: 1 !important; }
-.form-control:-ms-input-placeholder { color: #94a3b8 !important; opacity: 1 !important; }
-.form-control::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
+.form-control::placeholder { 
+    color: #64748b !important; 
+    opacity: 1; 
+}
 
 .form-control:focus { 
     border-color: var(--primary) !important; 
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important; 
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important; 
 }
 
 /* Dashboard Chart Size */
