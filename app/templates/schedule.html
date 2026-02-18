@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
   <div>
     <h2 class="fw-bold mb-1">Monthly Schedule</h2>
-    <div class="text-muted">{{ month_label }} — planned payments by day (your Excel workflow).</div>
+    <div class="text-muted">{{ month_label }} — planned payments by day.</div>
   </div>
 
   <form class="d-flex gap-2" method="GET" action="{{ url_for('monthly_schedule') }}">
@@ -13,70 +13,83 @@
   </form>
 </div>
 
-<div class="stat-card">
-  <div class="table-responsive">
-    <table class="table table-dark table-hover align-middle">
-      <thead>
-        <tr class="text-muted small">
-          <th style="width:140px;">DATE</th>
-          <th>PLANNED ITEMS</th>
-          <th style="width:420px;" class="text-end">ADD ITEM</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in days %}
-        <tr>
-          <td class="fw-bold">{{ d.strftime('%m/%d/%Y') }}</td>
+<div class="stat-card p-3">
+  <!-- Weekday header -->
+  <div class="schedule-grid schedule-header">
+    <div class="dayhead">Sun</div>
+    <div class="dayhead">Mon</div>
+    <div class="dayhead">Tue</div>
+    <div class="dayhead">Wed</div>
+    <div class="dayhead">Thu</div>
+    <div class="dayhead">Fri</div>
+    <div class="dayhead">Sat</div>
+  </div>
 
-          <td>
-            {% set items = by_day.get(d, []) %}
+  <!-- Calendar grid -->
+  <div class="schedule-grid">
+    {% for cell in calendar_cells %}
+      {% if cell.is_pad %}
+        <div class="daycell pad"></div>
+      {% else %}
+        {% set d = cell.date %}
+        {% set items = by_day.get(d, []) %}
+
+        <div class="daycell">
+          <div class="daycell-top">
+            <div class="daynum">{{ d.day }}</div>
+
+            <button class="btn btn-sm btn-outline-custom dayadd"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#addForm{{ d.strftime('%Y%m%d') }}">
+              +
+            </button>
+          </div>
+
+          <div class="items">
             {% if items|length == 0 %}
-              <span class="text-muted">—</span>
+              <div class="mutedline">—</div>
             {% else %}
-              <div class="d-flex flex-column gap-2">
-                {% for it in items %}
-                  <div class="d-flex justify-content-between align-items-center gap-2">
-                    <div>
-                      <span class="badge bg-secondary me-2">{{ it.kind }}</span>
-                      <span class="fw-semibold">{{ it.name }}</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="fw-bold">${{ "%.2f"|format(it.amount) }}</span>
-                      <a class="btn btn-sm btn-outline-danger border-0"
-                         href="{{ url_for('delete_schedule_item', item_id=it.id) }}">
-                        <i class="bi bi-trash"></i>
-                      </a>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endif %}
-          </td>
+              {% for it in items[:3] %}
+                <div class="pill {{ it.kind }}">
+                  <span class="pill-name">{{ it.name }}</span>
+                  <span class="pill-amt">${{ "%.0f"|format(it.amount) }}</span>
+                  <a class="pill-x" href="{{ url_for('delete_schedule_item', item_id=it.id) }}" title="Delete">×</a>
+                </div>
+              {% endfor %}
 
-          <td class="text-end">
-            <form class="d-flex flex-wrap justify-content-end gap-2" action="{{ url_for('add_schedule_item') }}" method="POST">
+              {% if items|length > 3 %}
+                <div class="moreline">+{{ items|length - 3 }} more</div>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          <!-- Collapsible add form -->
+          <div class="collapse addwrap" id="addForm{{ d.strftime('%Y%m%d') }}">
+            <form class="addform" action="{{ url_for('add_schedule_item') }}" method="POST">
               <input type="hidden" name="pay_date" value="{{ d.strftime('%Y-%m-%d') }}">
               <input type="hidden" name="month_param" value="{{ month_param }}">
 
-              <select name="sel_name" class="form-select" style="min-width: 220px;">
+              <select name="sel_name" class="form-select form-select-sm">
                 {% for opt in options %}
-                  <option value="{{ opt.name }}" data-kind="{{ opt.kind }}">{{ opt.label }}</option>
+                  <option value="{{ opt.name }}">{{ opt.label }}</option>
                 {% endfor %}
               </select>
 
-              <input name="custom_name" class="form-control" placeholder="Custom name (if Other)" style="min-width: 190px;">
+              <input name="custom_name" class="form-control form-control-sm" placeholder="Custom name (if Other)">
 
-              <input name="amount" type="number" step="0.01" class="form-control" placeholder="$" style="width: 120px;" required>
+              <div class="d-flex gap-2">
+                <input name="amount" type="number" step="0.01" class="form-control form-control-sm" placeholder="$" required>
+                <button class="btn btn-primary btn-sm">Add</button>
+              </div>
 
               <input type="hidden" name="kind" value="debt">
-
-              <button class="btn btn-primary btn-sm">Add</button>
             </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+
+        </div>
+      {% endif %}
+    {% endfor %}
   </div>
 </div>
 

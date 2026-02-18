@@ -340,16 +340,15 @@ def monthly_schedule():
     y, m = parse_month_param(request.args.get("month"))
     start, end = month_bounds(y, m)
 
-    # all planned items for this month
-    items = PlannedPayment.query.filter(PlannedPayment.pay_date >= start, PlannedPayment.pay_date <= end)\
-                                .order_by(PlannedPayment.pay_date.asc()).all()
+    items = PlannedPayment.query.filter(
+        PlannedPayment.pay_date >= start,
+        PlannedPayment.pay_date <= end
+    ).order_by(PlannedPayment.pay_date.asc()).all()
 
-    # group by day for rendering
     by_day = {}
     for it in items:
         by_day.setdefault(it.pay_date, []).append(it)
 
-    # dropdown options come from debts + bills (plus "Other")
     debts = Debt.query.order_by(Debt.name.asc()).all()
     bills = Bill.query.order_by(Bill.name.asc()).all()
 
@@ -360,23 +359,32 @@ def monthly_schedule():
         options.append({"label": f"Bill: {b.name}", "name": b.name, "kind": "bill"})
     options.append({"label": "Other (custom)", "name": "__custom__", "kind": "other"})
 
-    # day list
-    days = []
-    cur = start
-    while cur <= end:
-        days.append(cur)
-        cur += timedelta(days=1)
+    # Build calendar cells (pad to start weekday)
+    first_day = date(y, m, 1)
+    last_day_num = calendar.monthrange(y, m)[1]
+    first_weekday = (first_day.weekday() + 1) % 7  # convert Mon=0..Sun=6 -> Sun=0..Sat=6
+
+    calendar_cells = []
+    for _ in range(first_weekday):
+        calendar_cells.append({"is_pad": True})
+
+    for day in range(1, last_day_num + 1):
+        calendar_cells.append({"is_pad": False, "date": date(y, m, day)})
+
+    # pad end to complete last week row
+    while len(calendar_cells) % 7 != 0:
+        calendar_cells.append({"is_pad": True})
 
     month_label = date(y, m, 1).strftime("%B %Y")
     month_param = f"{y:04d}-{m:02d}"
 
     return render_template(
         "schedule.html",
-        days=days,
         by_day=by_day,
         options=options,
         month_label=month_label,
-        month_param=month_param
+        month_param=month_param,
+        calendar_cells=calendar_cells
     )
 
 @app.route("/schedule/add", methods=["POST"])
