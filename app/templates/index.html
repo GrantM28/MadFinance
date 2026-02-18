@@ -7,109 +7,89 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="container py-5">
-    <h2 class="mb-5 fw-bold">Strategy <span style="color: var(--primary)">Dashboard</span></h2>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="metric-label">Monthly Income</div>
-                <div class="metric-value" style="color: var(--primary)">${{ "%.2f"|format(summary.income) }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="metric-label">Debt Obligations</div>
-                <div class="metric-value danger">${{ "%.2f"|format(summary.total_debt) }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="metric-label">Free Cashflow</div>
-                <div class="metric-value success">${{ "%.2f"|format(summary.cashflow) }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="metric-label">DTI Ratio</div>
-                <div class="metric-value {{ 'danger' if summary.dti > 36 else '' }}">{{ "%.1f"|format(summary.dti) }}%</div>
-            </div>
+<h2 class="mb-5 fw-bold">Debt Strategy Dashboard</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="metric-label">Monthly Income</div>
+            <div class="metric-value text-info">${{ "%.0f"|format(summary.income) }}</div>
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="list-container mb-4">
-                <h5 class="mb-4 fw-bold">Active Debt Accounts</h5>
-                <table class="table table-dark table-hover align-middle">
-                    <thead class="text-muted small">
-                        <tr><th>NAME</th><th>BALANCE</th><th>APR</th><th>MIN PAY</th><th>ACTION</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for d in debts %}
-                        <tr>
-                            <td class="fw-bold">{{ d.name }}</td>
-                            <td>${{ "%.0f"|format(d.balance) }}</td>
-                            <td><span class="badge bg-secondary">{{ d.interest_rate }}%</span></td>
-                            <td>${{ d.min_payment }}</td>
-                            <td><button class="btn btn-sm btn-outline-danger">Delete</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <form action="/add_debt" method="POST" class="row g-2 mt-4">
-                    <div class="col-md-4"><input type="text" name="name" class="form-control form-control-sm" placeholder="Loan Name"></div>
-                    <div class="col-md-3"><input type="number" step="0.01" name="balance" class="form-control form-control-sm" placeholder="Balance"></div>
-                    <div class="col-md-2"><input type="number" step="0.01" name="apr" class="form-control form-control-sm" placeholder="APR %"></div>
-                    <div class="col-md-3"><input type="number" step="0.01" name="min_pay" class="form-control form-control-sm" placeholder="Min Pay"></div>
-                    <button class="btn btn-primary btn-sm mt-3">Add Debt Account</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="list-container mb-4">
-                <h6 class="fw-bold mb-3 text-primary">Monthly Income Sources</h6>
-                {% for inc in income_list %}
-                <div class="data-item">
-                    <span>{{ inc.name }} <small class="text-muted">({{ inc.frequency }})</small></span>
-                    <span class="success fw-bold">${{ inc.amount }}</span>
-                </div>
-                {% endfor %}
-                <button class="btn btn-outline-custom w-100 mt-3" data-bs-toggle="collapse" data-bs-target="#incomeForm">+ Add Source</button>
-                <div class="collapse mt-2" id="incomeForm">
-                    <form action="/add_income" method="POST">
-                        <input type="text" name="name" class="form-control mb-1" placeholder="Source">
-                        <input type="number" name="amount" class="form-control mb-1" placeholder="Amount">
-                        <select name="frequency" class="form-select mb-1">
-                            <option value="Monthly">Monthly</option>
-                            <option value="Bi-weekly">Bi-weekly</option>
-                        </select>
-                        <button class="btn btn-sm btn-primary w-100">Save</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="list-container">
-                <h6 class="fw-bold mb-3 text-info">Fixed Obligations</h6>
-                {% for bill in bills_list %}
-                <div class="data-item">
-                    <span>{{ bill.name }} <small class="text-muted">Day {{ bill.due_day }}</small></span>
-                    <span class="text-white fw-bold">${{ bill.amount }}</span>
-                </div>
-                {% endfor %}
-                <button class="btn btn-outline-custom w-100 mt-3" data-bs-toggle="collapse" data-bs-target="#billForm">+ Add Bill</button>
-                <div class="collapse mt-2" id="billForm">
-                    <form action="/add_bill" method="POST">
-                        <input type="text" name="name" class="form-control mb-1" placeholder="Utility Name">
-                        <input type="number" name="amount" class="form-control mb-1" placeholder="Amount">
-                        <input type="number" name="due_day" class="form-control mb-1" placeholder="Due Day">
-                        <button class="btn btn-sm btn-primary w-100">Save</button>
-                    </form>
-                </div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="metric-label">Total Debt</div>
+            <div class="metric-value text-danger">${{ "%.0f"|format(summary.balance) }}</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="metric-label">Free Cashflow</div>
+            <div class="metric-value text-success">${{ "%.0f"|format(summary.cashflow) }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="metric-label">DTI</div>
+            <div class="metric-value">{{ "%.1f"|format(summary.dti) }}%</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="metric-label">Avalanche Payoff</div>
+            <div class="metric-value">{{ summary.ava_months }} months</div>
+            <small>Interest: ${{ "%.0f"|format(summary.ava_interest) }}</small>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="metric-label">Snowball Payoff</div>
+            <div class="metric-value">{{ summary.snow_months }} months</div>
+            <small>Interest: ${{ "%.0f"|format(summary.snow_interest) }}</small>
+        </div>
+    </div>
+</div>
+
+<div class="mb-4">
+    <form action="/set_extra" method="POST" class="d-flex gap-2">
+        <input type="number" step="0.01" name="extra" class="form-control" placeholder="Extra Monthly Debt Payment">
+        <button class="btn btn-primary">Apply Strategy</button>
+    </form>
+</div>
+
+<h4>Debts</h4>
+<table class="table table-dark">
+<thead>
+<tr><th>Name</th><th>Balance</th><th>APR</th><th>Min</th><th></th></tr>
+</thead>
+<tbody>
+{% for d in debts %}
+<tr>
+<td>{{ d.name }}</td>
+<td>${{ "%.0f"|format(d.balance) }}</td>
+<td>{{ d.interest_rate }}%</td>
+<td>${{ d.min_payment }}</td>
+<td><a href="/delete_debt/{{ d.id }}" class="btn btn-sm btn-danger">Delete</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<form action="/add_debt" method="POST" class="row g-2">
+<input name="name" class="form-control" placeholder="Name">
+<input name="balance" class="form-control" placeholder="Balance">
+<input name="apr" class="form-control" placeholder="APR">
+<input name="min_pay" class="form-control" placeholder="Min Payment">
+<button class="btn btn-primary">Add Debt</button>
+</form>
+
 </body>
 </html>

@@ -9,18 +9,15 @@
 }
 
 body {
-    background-color: var(--bg-main);
-    color: #f8fafc;
-    font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.01em;
+    background:#0a0f1d;
+    color:#f8fafc;
+    font-family:system-ui;
 }
 
 .stat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: transform 0.2s ease;
+    background:#161e31;
+    padding:20px;
+    border-radius:12px;
 }
 
 .stat-card:hover {
@@ -29,16 +26,14 @@ body {
 }
 
 .metric-label {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: 700;
+    font-size:.75rem;
+    color:#94a3b8;
+    text-transform:uppercase;
 }
 
 .metric-value {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin-top: 0.5rem;
+    font-size:1.8rem;
+    font-weight:700;
 }
 
 .list-container {
