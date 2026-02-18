@@ -52,26 +52,30 @@ def get_monthly_income():
 
 @app.route('/')
 def index():
-    monthly_inc = get_monthly_income()
+    incomes = Income.query.all()
     bills = Bill.query.all()
     debts = Debt.query.all()
     
+    monthly_inc = get_monthly_income()
     total_bills = sum(b.amount for b in bills)
     total_min_debt = sum(d.min_payment for d in debts)
     total_debt_balance = sum(d.balance for d in debts)
     
-    free_cashflow = monthly_inc - total_bills - total_min_debt
-    
-    # DTI Calculation
+    cashflow = monthly_inc - total_bills - total_min_debt
     dti = ((total_bills + total_min_debt) / monthly_inc * 100) if monthly_inc > 0 else 0
     
+    summary = {
+        "income": monthly_inc,
+        "total_debt": total_debt_balance,
+        "cashflow": cashflow,
+        "dti": dti
+    }
+    
     return render_template('index.html', 
-                           income=monthly_inc, 
-                           bills=total_bills, 
+                           summary=summary,
                            debts=debts,
-                           total_debt=total_debt_balance,
-                           cashflow=free_cashflow,
-                           dti=dti)
+                           income_list=incomes,
+                           bills_list=bills)
 
 # --- ROUTES FOR ADDING DATA ---
 
