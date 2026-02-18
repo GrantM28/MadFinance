@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">Financial Overview</h2>
+    <span class="text-muted">Status: Optimal</span>
+</div>
+
+<div class="row g-4 mb-5">
+    </div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="chart-container h-100">
+            <h5 class="mb-4">Debt-to-Income Health</h5>
+            <canvas id="dtiChart"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="stat-card">
+            <h5>Quick Strategy Tips</h5>
+            <p class="text-muted small">Based on your {{ debt_count }} debt accounts:</p>
+            <div class="alert alert-info py-2">
+                <i class="bi bi-info-circle me-2"></i> Consider Avalanche for BHG Loan.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('dtiChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Obligations', 'Free Cashflow'],
+            datasets: [{
+                data: [{{ summary.income - summary.cashflow }}, {{ summary.cashflow }}],
+                backgroundColor: ['#f43f5e', '#10b981'],
+                borderWidth: 0
+            }]
+        },
+        options: { cutout: '80%' }
+    });
+</script>
+{% endblock %}

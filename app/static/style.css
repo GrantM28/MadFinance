@@ -1,18 +1,39 @@
 :root {
-    --bg-main: #0a0f1d;
-    --card-bg: #161e31;
-    --border-color: #2d3a54;
+    --bg-main: #020617;
+    --side-nav: #0f172a;
+    --card-bg: #1e293b;
     --primary: #38bdf8;
-    --success: #10b981;
-    --danger: #f43f5e;
-    --text-muted: #94a3b8;
+    --accent: #818cf8;
 }
 
-body {
-    background-color: var(--bg-main);
-    color: #f8fafc;
-    font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.01em;
+body { background-color: var(--bg-main); color: #f8fafc; overflow-x: hidden; }
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: var(--side-nav);
+    position: fixed;
+    border-right: 1px solid #334155;
+}
+
+.content-area { margin-left: 260px; min-height: 100vh; }
+
+.nav-link { color: #94a3b8; font-weight: 500; border-radius: 8px; margin-bottom: 5px; }
+.nav-link:hover { background: rgba(56, 189, 248, 0.1); color: var(--primary); }
+.nav-link.active { background: var(--primary); color: #fff; }
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.chart-container {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #334155;
 }
 
 .stat-card {
