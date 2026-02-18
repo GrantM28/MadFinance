@@ -59,6 +59,25 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="stat-card mt-4">
+    <h5 class="fw-bold mb-3">Paycheck Remainder Breakdown</h5>
+    <table class="table table-dark">
+        <thead>
+            <tr class="label"><th>DATE</th><th>CHECK</th><th>BILLS</th><th>REMAINDER</th></tr>
+        </thead>
+        <tbody>
+            {% for p in paycheck_data %}
+            <tr class="pay-group-{{ loop.index % 3 + 1 }}">
+                <td>{{ p.date.strftime('%m/%d/%Y') }}</td>
+                <td>${{ "%.2f"|format(p.amount) }}</td>
+                <td class="text-danger">-${{ "%.2f"|format(p.bill_total) }}</td>
+                <td class="text-success fw-bold">${{ "%.2f"|format(p.remainder) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
     </div>
 </div>
 {% endblock %}

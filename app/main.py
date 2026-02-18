@@ -27,7 +27,7 @@ class Bill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    due_date = db.Column(db.Date, nullable=True)
+    due_date = db.Column(db.Date, nullable=True) # Fixed: Correct keyword is due_date
 
 class Debt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,9 +62,7 @@ def dashboard():
         # Window ends at next paycheck or 14 days later
         end_date = incomes[i+1].next_pay_date if i+1 < len(incomes) else start_date + timedelta(days=14)
         
-        # Capture bills for this specific window
-        period_bills = [b for b in bills if start_date <= b.due_date < end_date]
-        # Distribute debt mins across checks for accuracy
+        period_bills = [b for b in bills if b.due_date and start_date <= b.due_date < end_date]
         debt_share = sum([d.min_payment for d in debts]) / (len(incomes) if incomes else 1)
         
         bill_sum = sum(b.amount for b in period_bills)
@@ -79,72 +77,50 @@ def dashboard():
             'remainder': remainder
         })
 
-    # Strategic Metrics
     monthly_inc = get_monthly_income_value()
     total_debt = sum(d.balance for d in debts)
     avg_apr = sum(d.interest_rate for d in debts) / (len(debts) if debts else 1)
-    
-    # SAFETY: Fix for ZeroDivisionError
     total_obligations = sum(b.amount for b in bills) + sum(d.min_payment for d in debts)
     dti = (total_obligations / monthly_inc * 100) if monthly_inc > 0 else 0
 
-    return render_template('dashboard.html', 
-                           groups=paycheck_groups, 
-                           total_debt=total_debt, 
-                           avg_apr=avg_apr if debts else 0,
-                           dti=dti,
+    return render_template('dashboard.html', groups=paycheck_groups, total_debt=total_debt, 
+                           avg_apr=avg_apr if debts else 0, dti=dti,
                            summary={"income": monthly_inc, "cashflow": monthly_inc - total_obligations})
 
 @app.route('/income', methods=['GET', 'POST'])
 def manage_income():
     if request.method == 'POST':
-        new_inc = Income(
-            name=request.form['name'], 
-            amount=float(request.form['amount']), 
-            frequency=request.form['frequency']
-        )
-        db.session.add(new_inc)
-        db.session.commit()
+        p_date = datetime.strptime(request.form['next_pay_date'], '%Y-%m-%d').date()
+        new_inc = Income(name=request.form['name'], amount=float(request.form['amount']), 
+                         frequency=request.form['frequency'], next_pay_date=p_date)
+        db.session.add(new_inc); db.session.commit()
         return redirect(url_for('manage_income'))
-    incomes = Income.query.all()
-    return render_template('income.html', incomes=incomes)
+    return render_template('income.html', incomes=Income.query.all())
 
 @app.route('/debt', methods=['GET', 'POST'])
 def manage_debt():
     if request.method == 'POST':
-        new_debt = Debt(
-            name=request.form['name'], 
-            balance=float(request.form['balance']), 
-            interest_rate=float(request.form['apr']), 
-            min_payment=float(request.form['min_pay'])
-        )
-        db.session.add(new_debt)
-        db.session.commit()
+        new_debt = Debt(name=request.form['name'], balance=float(request.form['balance']), 
+                        interest_rate=float(request.form['apr']), min_payment=float(request.form['min_pay']))
+        db.session.add(new_debt); db.session.commit()
         return redirect(url_for('manage_debt'))
-    debts = Debt.query.all()
-    return render_template('debt.html', debts=debts)
+    return render_template('debt.html', debts=Debt.query.all())
 
 @app.route('/bills', methods=['GET', 'POST'])
 def manage_bills():
     if request.method == 'POST':
-        new_bill = Bill(
-            name=request.form['name'], 
-            amount=float(request.form['amount']), 
-            due_day=int(request.form['due_day'])
-        )
-        db.session.add(new_bill)
-        db.session.commit()
+        d_date = datetime.strptime(request.form['due_date'], '%Y-%m-%d').date()
+        # FIXED: Using due_date to match the Bill model
+        new_bill = Bill(name=request.form['name'], amount=float(request.form['amount']), due_date=d_date)
+        db.session.add(new_bill); db.session.commit()
         return redirect(url_for('manage_bills'))
-    bills = Bill.query.all()
-    return render_template('bills.html', bills=bills)
+    return render_template('bills.html', bills=Bill.query.all())
 
-# Delete Routes
 @app.route('/delete/<string:category>/<int:id>')
 def delete_item(category, id):
     model_map = {'income': Income, 'debt': Debt, 'bill': Bill}
     item = model_map[category].query.get_or_404(id)
-    db.session.delete(item)
-    db.session.commit()
+    db.session.delete(item); db.session.commit()
     return redirect(request.referrer)
 
 if __name__ == '__main__':
