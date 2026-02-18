@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold"><i class="bi bi-wallet2 text-primary"></i> Income Management</h2>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3">Add New Source</h5>
+            <form action="{{ url_for('manage_income') }}" method="POST">
+                <div class="mb-3">
+                    <label class="small text-muted">SOURCE NAME</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Primary Job" required>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted">AMOUNT</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted">FREQUENCY</label>
+                    <select name="frequency" class="form-select">
+                        <option value="Monthly">Monthly</option>
+                        <option value="Bi-weekly">Bi-weekly</option>
+                        <option value="Weekly">Weekly</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Add Income</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-3">Existing Income</h5>
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr class="text-muted small">
+                        <th>SOURCE</th>
+                        <th>FREQUENCY</th>
+                        <th>AMOUNT</th>
+                        <th class="text-end">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inc in incomes %}
+                    <tr>
+                        <td class="fw-bold">{{ inc.name }}</td>
+                        <td><span class="badge bg-secondary">{{ inc.frequency }}</span></td>
+                        <td class="text-success fw-bold">${{ "%.2f"|format(inc.amount) }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('delete_item', category='income', id=inc.id) }}" class="btn btn-sm btn-outline-danger border-0">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
