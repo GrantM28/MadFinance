@@ -32,13 +32,15 @@ body {
 }
 
 .nav-link {
-    color: var(--text-muted);
+    color: rgba(226, 232, 240, 0.88);
     font-weight: 600;
     border-radius: 10px;
     margin-bottom: 6px;
     padding: 10px 12px;
     transition: 0.2s;
 }
+.nav-link i { opacity: 0.9; }
+
 
 .nav-link:hover {
     background: rgba(56, 189, 248, 0.08);
@@ -446,4 +448,12 @@ a.back-link,
 
 .brand-title{
   text-shadow: 0 1px 18px rgba(56, 189, 248, 0.18);
+}
+/* Use this instead of text-muted when you actually want readable */
+.text-soft {
+  color: rgba(226, 232, 240, 0.82) !important;
+}
+
+.text-faint {
+  color: rgba(226, 232, 240, 0.62) !important;
 }

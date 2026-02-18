@@ -129,6 +129,13 @@ function initPayoffCompareCharts(payoff) {
   }
 }
 
+if (window.Chart) {
+  Chart.defaults.color = "#cbd5e1";
+  Chart.defaults.borderColor = "rgba(148,163,184,0.12)";
+  Chart.defaults.font.family = "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+}
+
+
 (function initScheduleKindSync() {
   function syncRow(form) {
     const sel = form.querySelector('.js-kind-select');
