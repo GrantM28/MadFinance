@@ -14,10 +14,12 @@
                     <label class="small text-muted">SOURCE NAME</label>
                     <input type="text" name="name" class="form-control" placeholder="e.g. Primary Job" required>
                 </div>
+
                 <div class="mb-3">
                     <label class="small text-muted">AMOUNT</label>
                     <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
                 </div>
+
                 <div class="mb-3">
                     <label class="small text-muted">FREQUENCY</label>
                     <select name="frequency" class="form-select">
@@ -26,6 +28,13 @@
                         <option value="Weekly">Weekly</option>
                     </select>
                 </div>
+
+                <div class="mb-3">
+                    <label class="small text-muted">NEXT PAY DATE</label>
+                    <input type="date" name="next_pay_date" class="form-control">
+                    <div class="text-muted small mt-1">Optional, but required for check-to-check scheduling.</div>
+                </div>
+
                 <button type="submit" class="btn btn-primary w-100">Add Income</button>
             </form>
         </div>
@@ -40,6 +49,7 @@
                         <th>SOURCE</th>
                         <th>FREQUENCY</th>
                         <th>AMOUNT</th>
+                        <th>NEXT PAY</th>
                         <th class="text-end">ACTION</th>
                     </tr>
                 </thead>
@@ -49,6 +59,9 @@
                         <td class="fw-bold">{{ inc.name }}</td>
                         <td><span class="badge bg-secondary">{{ inc.frequency }}</span></td>
                         <td class="text-success fw-bold">${{ "%.2f"|format(inc.amount) }}</td>
+                        <td class="text-muted">
+                            {% if inc.next_pay_date %}{{ inc.next_pay_date.strftime('%m/%d/%Y') }}{% else %}—{% endif %}
+                        </td>
                         <td class="text-end">
                             <a href="{{ url_for('delete_item', category='income', id=inc.id) }}" class="btn btn-sm btn-outline-danger border-0">
                                 <i class="bi bi-trash"></i>
@@ -59,25 +72,6 @@
                 </tbody>
             </table>
         </div>
-
-        <div class="stat-card mt-4">
-    <h5 class="fw-bold mb-3">Paycheck Remainder Breakdown</h5>
-    <table class="table table-dark">
-        <thead>
-            <tr class="label"><th>DATE</th><th>CHECK</th><th>BILLS</th><th>REMAINDER</th></tr>
-        </thead>
-        <tbody>
-            {% for p in paycheck_data %}
-            <tr class="pay-group-{{ loop.index % 3 + 1 }}">
-                <td>{{ p.date.strftime('%m/%d/%Y') }}</td>
-                <td>${{ "%.2f"|format(p.amount) }}</td>
-                <td class="text-danger">-${{ "%.2f"|format(p.bill_total) }}</td>
-                <td class="text-success fw-bold">${{ "%.2f"|format(p.remainder) }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
     </div>
 </div>
 {% endblock %}

@@ -3,9 +3,11 @@
  */
 
 function initDtiChart(obligations, freeCashflow) {
-    const ctx = document.getElementById('dtiChart').getContext('2d');
-    
-    // Check if chart already exists to prevent canvas errors
+    const el = document.getElementById('dtiChart');
+    if (!el) return; // guard: only init if canvas exists
+
+    const ctx = el.getContext('2d');
+
     if (window.dtiChartInstance) {
         window.dtiChartInstance.destroy();
     }
@@ -16,24 +18,21 @@ function initDtiChart(obligations, freeCashflow) {
             labels: ['Obligations (Bills + Min Debt)', 'Free Cashflow'],
             datasets: [{
                 data: [obligations, freeCashflow],
-                backgroundColor: [
-                    '#f43f5e', // Danger/Red
-                    '#10b981'  // Success/Green
-                ],
-                hoverOffset: 15,
+                backgroundColor: ['#fb7185', '#34d399'],
+                hoverOffset: 12,
                 borderWidth: 0,
-                borderRadius: 5
+                borderRadius: 6
             }]
         },
         options: {
-            cutout: '75%',
+            cutout: '76%',
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
                         color: '#94a3b8',
-                        padding: 20,
-                        font: { size: 12, weight: '500' }
+                        padding: 18,
+                        font: { size: 12, weight: '600' }
                     }
                 }
             }

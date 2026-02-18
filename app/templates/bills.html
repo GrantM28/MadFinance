@@ -11,13 +11,16 @@
             <h5 class="mb-3">Add Bill</h5>
             <form action="{{ url_for('manage_bills') }}" method="POST">
                 <div class="mb-3">
+                    <label class="small text-muted">BILL NAME</label>
                     <input type="text" name="name" class="form-control" placeholder="e.g. Internet" required>
                 </div>
                 <div class="mb-3">
-                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Amount" required>
+                    <label class="small text-muted">AMOUNT</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
                 </div>
                 <div class="mb-3">
-                    <input type="date" name="due_date" class="form-control" placeholder="Due Day (1-31)" required>
+                    <label class="small text-muted">DUE DATE</label>
+                    <input type="date" name="due_date" class="form-control" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Add Bill</button>
             </form>
@@ -31,7 +34,7 @@
                 <thead>
                     <tr class="text-muted small">
                         <th>BILL</th>
-                        <th>DUE DAY</th>
+                        <th>DUE</th>
                         <th>AMOUNT</th>
                         <th class="text-end">ACTION</th>
                     </tr>
@@ -40,7 +43,9 @@
                     {% for b in bills %}
                     <tr>
                         <td class="fw-bold">{{ b.name }}</td>
-                        <td>Day {{ b.due_date }}</td>
+                        <td class="text-muted">
+                            {% if b.due_date %}{{ b.due_date.strftime('%m/%d/%Y') }}{% else %}—{% endif %}
+                        </td>
                         <td>${{ "%.2f"|format(b.amount) }}</td>
                         <td class="text-end">
                             <a href="{{ url_for('delete_item', category='bill', id=b.id) }}" class="btn btn-sm btn-outline-danger border-0">
@@ -51,6 +56,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="text-muted small mt-2">Tip: use actual due dates so your dashboard schedule stays accurate.</div>
         </div>
     </div>
 </div>
