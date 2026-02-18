@@ -43,9 +43,7 @@
                     {% for b in bills %}
                     <tr>
                         <td class="fw-bold">{{ b.name }}</td>
-                        <td class="text-muted">
-                            {% if b.due_date %}{{ b.due_date.strftime('%m/%d/%Y') }}{% else %}—{% endif %}
-                        </td>
+                        <td>{% if b.due_date %}{{ b.due_date.strftime('%m/%d') }}{% else %}—{% endif %}</td>
                         <td>${{ "%.2f"|format(b.amount) }}</td>
                         <td class="text-end">
                             <a href="{{ url_for('delete_item', category='bill', id=b.id) }}" class="btn btn-sm btn-outline-danger border-0">

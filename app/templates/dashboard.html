@@ -63,7 +63,7 @@
                 {% endif %}
             </div>
             <div class="text-muted">Interest paid: <span class="text-white fw-bold">
-                {% if summary.ava.interest == float('inf') %}∞{% else %}${{ "%.0f"|format(summary.ava.interest) }}{% endif %}
+                {% if summary.ava_unreachable %}∞{% else %}${{ "%.0f"|format(summary.ava.interest) }}{% endif %}
             </span></div>
         </div>
     </div>
@@ -83,7 +83,7 @@
                 {% endif %}
             </div>
             <div class="text-muted">Interest paid: <span class="text-white fw-bold">
-                {% if summary.snb.interest == float('inf') %}∞{% else %}${{ "%.0f"|format(summary.snb.interest) }}{% endif %}
+                {% if summary.snb_unreachable %}∞{% else %}${{ "%.0f"|format(summary.snb.interest) }}{% endif %}
             </span></div>
         </div>
     </div>
