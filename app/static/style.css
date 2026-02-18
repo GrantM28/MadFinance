@@ -95,9 +95,10 @@ label.small.text-muted {
     display: block;
 }
 .text-muted {
-    color: var(--text-muted) !important;
-    opacity: 0.9;
+  color: #cbd5e1 !important; /* brighter slate */
+  opacity: 1;
 }
+
 
 /* Inputs */
 .form-control, .form-select {
@@ -344,4 +345,15 @@ canvas {
 /* If you want NO vertical scroll on 1080p, this helps a lot */
 @media (min-height: 900px) {
   .daycell { min-height: 110px; }
+}
+
+a.back-link,
+.back-link {
+  color: #60a5fa;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.back-link:hover {
+  color: #93c5fd;
 }
