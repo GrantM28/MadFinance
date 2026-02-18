@@ -1,57 +1,55 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-4">
-    <h2 class="fw-bold">February 2026 Cashflow</h2>
-    <div class="remainder-pill text-uppercase">Total Monthly Remainder: $4,211.09</div>
-</div>
-
-<div class="row g-4">
-    <div class="col-12">
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
         <div class="stat-card">
-            <h6 class="metric-label mb-3">Paycheck Breakdown</h6>
-            <div class="table-responsive">
-                <table class="table table-dark table-sm">
-                    <thead>
-                        <tr class="text-muted small">
-                            <th>DATE</th><th>CHECKS</th><th>BILLS</th><th>REMAINDER</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="pay-group-1">
-                            <td>1/30/2026</td><td>$3,163.65</td><td>$2,228.33</td><td class="text-success">$935.32</td>
-                        </tr>
-                        <tr class="pay-group-2">
-                            <td>2/6/2026</td><td>$1,307.00</td><td>$725.00</td><td class="text-success">$582.00</td>
-                        </tr>
-                        </tbody>
-                </table>
-            </div>
+            <div class="metric-label">Debt Monster Balance</div>
+            <div class="metric-value text-danger">${{ "%.2f"|format(total_debt) }}</div>
+            <small class="text-muted">Weighted APR: {{ "%.2f"|format(avg_apr) }}%</small>
         </div>
     </div>
-
-    <div class="col-12">
+    <div class="col-md-4">
         <div class="stat-card">
-            <h5 class="fw-bold mb-4">Check-to-Check Allocation</h5>
-            <table class="table table-dark table-hover align-middle">
-                <thead>
-                    <tr class="text-muted small">
-                        <th>CHECK DATE</th><th>DUE DATE</th><th>EXPENSE</th><th>AMOUNT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="pay-group-1">
-                        <td>1/30/2026</td><td>2/1/2026</td><td>Trash</td><td>$83.90</td>
-                    </tr>
-                    <tr class="pay-group-1">
-                        <td>1/30/2026</td><td>3/15/2026</td><td>BHG Loan (Partial)</td><td>$400.00</td>
-                    </tr>
-                    <tr class="pay-group-2">
-                        <td>2/6/2026</td><td>2/6/2026</td><td>Venmo CC</td><td>$125.00</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="metric-label">DTI (Health)</div>
+            <div class="metric-value {{ 'text-danger' if dti > 36 else 'text-info' }}">{{ "%.1f"|format(dti) }}%</div>
+            <small class="text-muted">Safe Zone: < 36%</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="metric-label">Total Monthly Interest Saved</div>
+            <div class="metric-value text-success">$0.00</div>
+            <small class="text-muted">Direct remainder to debt to increase this</small>
         </div>
     </div>
 </div>
+
+<h4 class="fw-bold mb-4">The Cashflow Schedule</h4>
+{% for group in groups %}
+<div class="stat-card mb-4 pay-group-{{ loop.index % 3 + 1 }}">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold m-0 text-primary">Paycheck: {{ group.date.strftime('%m/%d/%Y') }}</h5>
+        <span class="remainder-pill">Available to Attack Debt: ${{ "%.2f"|format(group.remainder) }}</span>
+    </div>
+    <table class="table table-dark table-sm border-0 m-0">
+        <thead>
+            <tr class="label"><th>DUE DATE</th><th>EXPENSE</th><th class="text-end">AMOUNT</th></tr>
+        </thead>
+        <tbody>
+            {% for b in group.bills %}
+            <tr>
+                <td>{{ b.due_date.strftime('%m/%d') }}</td>
+                <td>{{ b.name }}</td>
+                <td class="text-end text-danger">-${{ "%.2f"|format(b.amount) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="border-top border-secondary">
+                <td colspan="2" class="text-muted small">Income: +${{ "%.2f"|format(group.income) }}</td>
+                <td class="text-end fw-bold">Net: ${{ "%.2f"|format(group.remainder) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endfor %}
 {% endblock %}

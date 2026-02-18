@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
@@ -57,27 +58,42 @@ def get_monthly_income_value():
 
 @app.route('/')
 def dashboard():
-    incomes = Income.query.all()
-    bills = Bill.query.all()
+    incomes = Income.query.order_by(Income.next_pay_date).all()
+    bills = Bill.query.order_by(Bill.due_date).all()
     debts = Debt.query.all()
-    
-    total_inc = get_monthly_income_value()
-    total_bills = sum(b.amount for b in bills)
-    total_min_debt = sum(d.min_payment for d in debts)
-    
-    cashflow = total_inc - total_bills - total_min_debt
-    dti = ((total_bills + total_min_debt) / total_inc * 100) if total_inc > 0 else 0
-    
-    summary = {
-        "income": total_inc,
-        "total_debt": sum(d.balance for d in debts),
-        "cashflow": cashflow,
-        "dti": dti
-    }
-    
+
+    paycheck_groups = []
+    for i, inc in enumerate(incomes):
+        # Define the window for this paycheck (until the next one arrives)
+        start_date = inc.next_pay_date
+        end_date = incomes[i+1].next_pay_date if i+1 < len(incomes) else start_date + timedelta(days=14)
+        
+        # Capture all bills/debts falling in this specific window
+        period_bills = [b for b in bills if start_date <= b.due_date < end_date]
+        period_debt_mins = sum([d.min_payment for d in debts]) / len(incomes) # Distribute mins across checks
+        
+        bill_sum = sum(b.amount for b in period_bills)
+        remainder = inc.amount - bill_sum - period_debt_mins
+        
+        paycheck_groups.append({
+            'date': start_date,
+            'income': inc.amount,
+            'bills': period_bills,
+            'bill_total': bill_sum,
+            'debt_min': period_debt_mins,
+            'remainder': remainder # This is your "Attack Power" for this check
+        })
+
+    # Global Stats
+    total_debt = sum(d.balance for d in debts)
+    avg_apr = sum(d.interest_rate for d in debts) / len(debts) if debts else 0
+    dti = ((sum(b.amount for b in bills) + sum(d.min_payment for d in debts)) / get_monthly_income_value() * 100)
+
     return render_template('dashboard.html', 
-                           summary=summary, 
-                           debt_count=len(debts))
+                           groups=paycheck_groups, 
+                           total_debt=total_debt, 
+                           avg_apr=avg_apr,
+                           dti=dti)
 
 @app.route('/income', methods=['GET', 'POST'])
 def manage_income():
