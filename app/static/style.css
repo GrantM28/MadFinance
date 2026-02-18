@@ -161,3 +161,55 @@ label.small.text-muted {
 .sidebar .text-muted {
     color: #aeb9cc !important;
 }
+
+/* Dashboard planner helpers */
+.planner-block {
+  border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(2,6,23,0.35);
+}
+
+.planner-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148,163,184,0.12);
+}
+
+.planner-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-card {
+  border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(2,6,23,0.35);
+}
+
+.mini-title {
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.mini-metric {
+  font-size: 1.35rem;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.mini-sub {
+  color: #cbd5e1;
+  opacity: 0.9;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+/* Fix chart card height feeling "random" */
+canvas {
+  max-width: 100%;
+}
