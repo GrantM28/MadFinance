@@ -1,0 +1,7 @@
+services:
+  finance-app:
+    build: .
+    container_name: finance-tracker
+    ports:
+      - "5001:5000" # Maps Unraid port 5001 to container port 5000
+    restart: unless-stopped
