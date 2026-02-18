@@ -5,6 +5,7 @@
     --primary: #38bdf8;
     --accent: #818cf8;
     --text-muted: #94a3b8;
+    --form-label: #e2e8f0; /* New: High contrast label color */
 }
 
 body { background-color: var(--bg-main); color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -16,23 +17,41 @@ body { background-color: var(--bg-main); color: #f8fafc; font-family: 'Inter', s
 .nav-link:hover { background: rgba(56, 189, 248, 0.1); color: var(--primary); }
 .nav-link.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
 
-/* Stat Cards & Metrics */
+/* Stat Cards */
 .stat-card { background: var(--card-bg); border: 1px solid #334155; border-radius: 16px; padding: 1.5rem; transition: 0.3s; }
 .stat-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 
+/* Typography */
 .metric-label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
 .metric-value { font-size: 1.8rem; font-weight: 800; margin-top: 0.4rem; color: #fff; }
 
-/* FORM FIX: Legibility for Add Source/Debt/Bills */
-.form-control, .form-select {
-    background-color: #0f172a !important;
-    border: 1px solid #334155 !important;
-    color: #ffffff !important; /* Forces text to be white */
-    font-weight: 500;
+/* FORM LEGIBILITY FIX */
+label.small.text-muted { 
+    color: var(--form-label) !important; 
+    font-weight: 600 !important; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
 }
 
-.form-control::placeholder { color: #475569; }
-.form-control:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); outline: none; }
+.form-control, .form-select {
+    background-color: #030712 !important; /* Even darker for contrast */
+    border: 1px solid #475569 !important; /* Lighter border */
+    color: #ffffff !important; 
+    font-weight: 500 !important;
+    padding: 10px 12px;
+}
+
+.form-control::placeholder { 
+    color: #64748b !important; 
+    opacity: 1; 
+}
+
+.form-control:focus { 
+    border-color: var(--primary) !important; 
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important; 
+}
 
 /* Dashboard Chart Size */
-.chart-container { max-width: 450px; margin: 0 auto; }
+.chart-container { max-width: 400px; margin: 0 auto; }
