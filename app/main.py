@@ -20,13 +20,14 @@ class Income(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    frequency = db.Column(db.String(50), nullable=False) # Monthly, Bi-weekly, Weekly
+    frequency = db.Column(db.String(50), nullable=False) 
+    next_pay_date = db.Column(db.Date, nullable=True) # Added for calendar logic
 
 class Bill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    due_day = db.Column(db.Integer)
+    due_date = db.Column(db.Date, nullable=True) # Changed from due_day to real Date
 
 class Debt(db.Model):
     id = db.Column(db.Integer, primary_key=True)

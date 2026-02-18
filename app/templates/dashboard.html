@@ -1,68 +1,57 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">Financial Strategy Dashboard</h2>
-    <span class="badge bg-primary bg-opacity-10 text-primary p-2 border border-primary border-opacity-25">Engine v2.1 Active</span>
-</div>
-
-<div class="row g-4 mb-5">
-    <div class="col-md-3">
-        <div class="stat-card text-center">
-            <div class="metric-label">Monthly Income</div>
-            <div class="metric-value text-primary">${{ "%.2f"|format(summary.income) }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card text-center">
-            <div class="metric-label">Total Debt</div>
-            <div class="metric-value text-danger">${{ "%.2f"|format(summary.total_debt) }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card text-center">
-            <div class="metric-label">Free Cashflow</div>
-            <div class="metric-value text-success">${{ "%.2f"|format(summary.cashflow) }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card text-center">
-            <div class="metric-label">DTI Ratio</div>
-            <div class="metric-value {{ 'text-danger' if summary.dti > 36 else 'text-info' }}">{{ "%.1f"|format(summary.dti) }}%</div>
-        </div>
-    </div>
+<div class="d-flex justify-content-between mb-4">
+    <h2 class="fw-bold">February 2026 Cashflow</h2>
+    <div class="remainder-pill text-uppercase">Total Monthly Remainder: $4,211.09</div>
 </div>
 
 <div class="row g-4">
-    <div class="col-lg-5">
-        <div class="stat-card h-100">
-            <h5 class="mb-4 fw-bold text-center">Income Allocation</h5>
-            <div class="chart-container">
-                <canvas id="dtiChart"></canvas>
+    <div class="col-12">
+        <div class="stat-card">
+            <h6 class="metric-label mb-3">Paycheck Breakdown</h6>
+            <div class="table-responsive">
+                <table class="table table-dark table-sm">
+                    <thead>
+                        <tr class="text-muted small">
+                            <th>DATE</th><th>CHECKS</th><th>BILLS</th><th>REMAINDER</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="pay-group-1">
+                            <td>1/30/2026</td><td>$3,163.65</td><td>$2,228.33</td><td class="text-success">$935.32</td>
+                        </tr>
+                        <tr class="pay-group-2">
+                            <td>2/6/2026</td><td>$1,307.00</td><td>$725.00</td><td class="text-success">$582.00</td>
+                        </tr>
+                        </tbody>
+                </table>
             </div>
         </div>
     </div>
-    
-    <div class="col-lg-7">
-        <div class="stat-card h-100">
-            <h5 class="fw-bold mb-4"><i class="bi bi-cpu text-primary me-2"></i>AI Strategy Insights</h5>
-            <div class="alert alert-primary bg-primary bg-opacity-10 border-0 text-white mb-3">
-                <i class="bi bi-info-circle me-2 text-primary"></i> 
-                <strong>DTI Insight:</strong> Your ratio is {{ "%.1f"|format(summary.dti) }}%. 
-                Under 36% is considered "Healthy" for traditional lenders.
-            </div>
-            <div class="alert alert-warning bg-warning bg-opacity-10 border-0 text-white">
-                <i class="bi bi-lightning-charge me-2 text-warning"></i> 
-                <strong>Strategy Pick:</strong> Avalanche Method will save you the most interest based on your current APRs.
-            </div>
+
+    <div class="col-12">
+        <div class="stat-card">
+            <h5 class="fw-bold mb-4">Check-to-Check Allocation</h5>
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr class="text-muted small">
+                        <th>CHECK DATE</th><th>DUE DATE</th><th>EXPENSE</th><th>AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="pay-group-1">
+                        <td>1/30/2026</td><td>2/1/2026</td><td>Trash</td><td>$83.90</td>
+                    </tr>
+                    <tr class="pay-group-1">
+                        <td>1/30/2026</td><td>3/15/2026</td><td>BHG Loan (Partial)</td><td>$400.00</td>
+                    </tr>
+                    <tr class="pay-group-2">
+                        <td>2/6/2026</td><td>2/6/2026</td><td>Venmo CC</td><td>$125.00</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-<script>
-    initDtiChart({{ summary.income - summary.cashflow }}, {{ summary.cashflow }});
-</script>
 {% endblock %}
