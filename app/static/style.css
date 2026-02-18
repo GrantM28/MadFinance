@@ -399,3 +399,51 @@ a.back-link,
   font-size: .82rem;
   border-radius: 10px;
 }
+
+/* "Local DB" style badge (Bootstrap-like but readable on dark UI) */
+.badge.bg-secondary-subtle.text-light.border.border-secondary-subtle{
+  background: rgba(148, 163, 184, 0.14) !important; /* subtle slate */
+  color: #f1f5f9 !important;
+  border-color: rgba(148, 163, 184, 0.30) !important;
+
+  padding: .35rem .55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .78rem;
+  letter-spacing: -0.01em;
+
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35) inset;
+}
+
+/* Icon inside badge */
+.badge.bg-secondary-subtle.text-light.border.border-secondary-subtle i{
+  font-size: .9em;
+  opacity: 0.95;
+}
+
+/* Brand block (sidebar/header) */
+.brand-title{
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #f8fafc;                 /* bright, readable */
+  text-transform: none;
+}
+
+.brand-sub{
+  margin-top: .15rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(203, 213, 225, 0.78); /* muted but visible */
+}
+
+.brand-title{
+  text-shadow: 0 1px 18px rgba(56, 189, 248, 0.18);
+}
