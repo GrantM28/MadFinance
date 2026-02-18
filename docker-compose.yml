@@ -1,7 +1,9 @@
 services:
   finance-app:
     build: .
-    container_name: finance-tracker
+    container_name: MadFinance
     ports:
-      - "5001:5000" # Maps Unraid port 5001 to container port 5000
+      - "5001:5000"
+    volumes:
+      - ./app/data:/app/app/data  # This saves your finance.db file on your Unraid drive
     restart: unless-stopped
