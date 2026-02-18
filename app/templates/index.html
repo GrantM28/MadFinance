@@ -1,100 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Finance Strategy Engine</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body { background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .stat-card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
-        .metric-value { font-size: 1.8rem; font-weight: bold; color: #38bdf8; }
-        .danger { color: #f43f5e; }
-        .success { color: #10b981; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="container py-4">
-    <h2 class="mb-4">Financial Strategy Dashboard</h2>
+<body class="container py-5">
+    <h2 class="mb-5 fw-bold">Strategy <span style="color: var(--primary)">Dashboard</span></h2>
 
-    <div class="row g-3 mb-4 text-center">
+    <div class="row g-4 mb-5">
         <div class="col-md-3">
             <div class="stat-card">
-                <div class="text-secondary small uppercase">Monthly Income</div>
-                <div class="metric-value">${{ "%.2f"|format(income) }}</div>
+                <div class="metric-label">Monthly Income</div>
+                <div class="metric-value" style="color: var(--primary)">${{ "%.2f"|format(summary.income) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stat-card">
-                <div class="text-secondary small uppercase">Total Debt</div>
-                <div class="metric-value danger">${{ "%.2f"|format(total_debt) }}</div>
+                <div class="metric-label">Debt Obligations</div>
+                <div class="metric-value danger">${{ "%.2f"|format(summary.total_debt) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stat-card">
-                <div class="text-secondary small uppercase">Free Cashflow</div>
-                <div class="metric-value success">${{ "%.2f"|format(cashflow) }}</div>
+                <div class="metric-label">Free Cashflow</div>
+                <div class="metric-value success">${{ "%.2f"|format(summary.cashflow) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stat-card">
-                <div class="text-secondary small uppercase">DTI Ratio</div>
-                <div class="metric-value {{ 'danger' if dti > 36 else '' }}">{{ "%.1f"|format(dti) }}%</div>
+                <div class="metric-label">DTI Ratio</div>
+                <div class="metric-value {{ 'danger' if summary.dti > 36 else '' }}">{{ "%.1f"|format(summary.dti) }}%</div>
             </div>
         </div>
     </div>
 
     <div class="row g-4">
-        <div class="col-md-8">
-            <div class="stat-card mb-4">
-                <h4>Debt Accounts</h4>
-                <table class="table table-dark table-hover mt-3">
-                    <thead><tr><th>Name</th><th>Balance</th><th>APR</th><th>Min Pay</th></tr></thead>
+        <div class="col-lg-8">
+            <div class="list-container mb-4">
+                <h5 class="mb-4 fw-bold">Active Debt Accounts</h5>
+                <table class="table table-dark table-hover align-middle">
+                    <thead class="text-muted small">
+                        <tr><th>NAME</th><th>BALANCE</th><th>APR</th><th>MIN PAY</th><th>ACTION</th></tr>
+                    </thead>
                     <tbody>
                         {% for d in debts %}
                         <tr>
-                            <td>{{ d.name }}</td>
-                            <td>${{ d.balance }}</td>
-                            <td>{{ d.interest_rate }}%</td>
+                            <td class="fw-bold">{{ d.name }}</td>
+                            <td>${{ "%.0f"|format(d.balance) }}</td>
+                            <td><span class="badge bg-secondary">{{ d.interest_rate }}%</span></td>
                             <td>${{ d.min_payment }}</td>
+                            <td><button class="btn btn-sm btn-outline-danger">Delete</button></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <hr>
-                <h6>Add New Debt</h6>
-                <form action="/add_debt" method="POST" class="row g-2">
-                    <div class="col-md-3"><input type="text" name="name" class="form-control form-control-sm" placeholder="Name"></div>
+                <form action="/add_debt" method="POST" class="row g-2 mt-4">
+                    <div class="col-md-4"><input type="text" name="name" class="form-control form-control-sm" placeholder="Loan Name"></div>
                     <div class="col-md-3"><input type="number" step="0.01" name="balance" class="form-control form-control-sm" placeholder="Balance"></div>
                     <div class="col-md-2"><input type="number" step="0.01" name="apr" class="form-control form-control-sm" placeholder="APR %"></div>
-                    <div class="col-md-2"><input type="number" step="0.01" name="min_pay" class="form-control form-control-sm" placeholder="Min Pay"></div>
-                    <div class="col-md-2"><button class="btn btn-primary btn-sm w-100">Add</button></div>
+                    <div class="col-md-3"><input type="number" step="0.01" name="min_pay" class="form-control form-control-sm" placeholder="Min Pay"></div>
+                    <button class="btn btn-primary btn-sm mt-3">Add Debt Account</button>
                 </form>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="stat-card mb-4">
-                <h5>Add Income</h5>
-                <form action="/add_income" method="POST">
-                    <input type="text" name="name" class="form-control mb-2" placeholder="Source">
-                    <input type="number" name="amount" class="form-control mb-2" placeholder="Amount">
-                    <select name="frequency" class="form-select mb-2">
-                        <option value="Monthly">Monthly</option>
-                        <option value="Bi-weekly">Bi-weekly</option>
-                        <option value="Weekly">Weekly</option>
-                    </select>
-                    <button class="btn btn-outline-primary w-100">Add Income</button>
-                </form>
+        <div class="col-lg-4">
+            <div class="list-container mb-4">
+                <h6 class="fw-bold mb-3 text-primary">Monthly Income Sources</h6>
+                {% for inc in income_list %}
+                <div class="data-item">
+                    <span>{{ inc.name }} <small class="text-muted">({{ inc.frequency }})</small></span>
+                    <span class="success fw-bold">${{ inc.amount }}</span>
+                </div>
+                {% endfor %}
+                <button class="btn btn-outline-custom w-100 mt-3" data-bs-toggle="collapse" data-bs-target="#incomeForm">+ Add Source</button>
+                <div class="collapse mt-2" id="incomeForm">
+                    <form action="/add_income" method="POST">
+                        <input type="text" name="name" class="form-control mb-1" placeholder="Source">
+                        <input type="number" name="amount" class="form-control mb-1" placeholder="Amount">
+                        <select name="frequency" class="form-select mb-1">
+                            <option value="Monthly">Monthly</option>
+                            <option value="Bi-weekly">Bi-weekly</option>
+                        </select>
+                        <button class="btn btn-sm btn-primary w-100">Save</button>
+                    </form>
+                </div>
             </div>
-            
-            <div class="stat-card">
-                <h5>Add Fixed Bill</h5>
-                <form action="/add_bill" method="POST">
-                    <input type="text" name="name" class="form-control mb-2" placeholder="Utility, Rent, etc.">
-                    <input type="number" name="amount" class="form-control mb-2" placeholder="Amount">
-                    <input type="number" name="due_day" class="form-control mb-2" placeholder="Due Day (1-31)">
-                    <button class="btn btn-outline-info w-100">Add Bill</button>
-                </form>
+
+            <div class="list-container">
+                <h6 class="fw-bold mb-3 text-info">Fixed Obligations</h6>
+                {% for bill in bills_list %}
+                <div class="data-item">
+                    <span>{{ bill.name }} <small class="text-muted">Day {{ bill.due_day }}</small></span>
+                    <span class="text-white fw-bold">${{ bill.amount }}</span>
+                </div>
+                {% endfor %}
+                <button class="btn btn-outline-custom w-100 mt-3" data-bs-toggle="collapse" data-bs-target="#billForm">+ Add Bill</button>
+                <div class="collapse mt-2" id="billForm">
+                    <form action="/add_bill" method="POST">
+                        <input type="text" name="name" class="form-control mb-1" placeholder="Utility Name">
+                        <input type="number" name="amount" class="form-control mb-1" placeholder="Amount">
+                        <input type="number" name="due_day" class="form-control mb-1" placeholder="Due Day">
+                        <button class="btn btn-sm btn-primary w-100">Save</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
