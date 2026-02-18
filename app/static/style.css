@@ -7,7 +7,7 @@
     --accent: #818cf8;
     --danger: #fb7185;
     --success: #34d399;
-    --text-muted: #ffffff;
+    --text-muted: #cbd5e1;
     --border: #22304a;
     --form-label: #e2e8f0;
 }
@@ -59,6 +59,10 @@ body {
     padding: 1.4rem;
     transition: 0.2s;
 }
+.stat-card small {
+    color: #d1d5db;
+    font-weight: 500;
+}
 
 .stat-card:hover {
     transform: translateY(-2px);
@@ -89,6 +93,10 @@ label.small.text-muted {
     letter-spacing: 0.08em;
     margin-bottom: 6px;
     display: block;
+}
+.text-muted {
+    color: var(--text-muted) !important;
+    opacity: 0.9;
 }
 
 /* Inputs */
@@ -122,8 +130,8 @@ label.small.text-muted {
 }
 
 .table-dark thead th {
-    color: rgba(148, 163, 184, 0.9) !important;
-    font-weight: 800;
+    color: #cbd5e1 !important;
+    font-weight: 700;
     letter-spacing: 0.08em;
     font-size: 0.72rem;
     border-bottom: 1px solid rgba(148, 163, 184, 0.15) !important;
@@ -148,3 +156,8 @@ label.small.text-muted {
 .pay-group-1 { border-left: 5px solid #38bdf8; }
 .pay-group-2 { border-left: 5px solid #f472b6; }
 .pay-group-3 { border-left: 5px solid #fbbf24; }
+
+.sidebar .small,
+.sidebar .text-muted {
+    color: #aeb9cc !important;
+}
