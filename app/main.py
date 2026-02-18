@@ -15,47 +15,41 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- MODELS (Fixed: These must be defined before the routes use them) ---
-
+# --- MODELS ---
 class Income(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     frequency = db.Column(db.String(50), nullable=False) 
-    next_pay_date = db.Column(db.Date, nullable=True) # Added for calendar logic
+    next_pay_date = db.Column(db.Date, nullable=True)
 
 class Bill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    due_date = db.Column(db.Date, nullable=True) # Changed from due_day to real Date
+    due_date = db.Column(db.Date, nullable=True)
 
 class Debt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     balance = db.Column(db.Float, nullable=False)
-    interest_rate = db.Column(db.Float, nullable=False) # APR
+    interest_rate = db.Column(db.Float, nullable=False)
     min_payment = db.Column(db.Float, nullable=False)
 
 with app.app_context():
     db.create_all()
 
 # --- MATH ENGINE ---
-
 def get_monthly_income_value():
     incomes = Income.query.all()
     total = 0
     for i in incomes:
-        if i.frequency == 'Bi-weekly':
-            total += (i.amount * 26) / 12
-        elif i.frequency == 'Weekly':
-            total += (i.amount * 52) / 12
-        else:
-            total += i.amount
+        if i.frequency == 'Bi-weekly': total += (i.amount * 26) / 12
+        elif i.frequency == 'Weekly': total += (i.amount * 52) / 12
+        else: total += i.amount
     return total
 
 # --- ROUTES ---
-
 @app.route('/')
 def dashboard():
     incomes = Income.query.order_by(Income.next_pay_date).all()
@@ -64,36 +58,42 @@ def dashboard():
 
     paycheck_groups = []
     for i, inc in enumerate(incomes):
-        # Define the window for this paycheck (until the next one arrives)
         start_date = inc.next_pay_date
+        # Window ends at next paycheck or 14 days later
         end_date = incomes[i+1].next_pay_date if i+1 < len(incomes) else start_date + timedelta(days=14)
         
-        # Capture all bills/debts falling in this specific window
+        # Capture bills for this specific window
         period_bills = [b for b in bills if start_date <= b.due_date < end_date]
-        period_debt_mins = sum([d.min_payment for d in debts]) / len(incomes) # Distribute mins across checks
+        # Distribute debt mins across checks for accuracy
+        debt_share = sum([d.min_payment for d in debts]) / (len(incomes) if incomes else 1)
         
         bill_sum = sum(b.amount for b in period_bills)
-        remainder = inc.amount - bill_sum - period_debt_mins
+        remainder = inc.amount - bill_sum - debt_share
         
         paycheck_groups.append({
             'date': start_date,
             'income': inc.amount,
             'bills': period_bills,
             'bill_total': bill_sum,
-            'debt_min': period_debt_mins,
-            'remainder': remainder # This is your "Attack Power" for this check
+            'debt_min': debt_share,
+            'remainder': remainder
         })
 
-    # Global Stats
+    # Strategic Metrics
+    monthly_inc = get_monthly_income_value()
     total_debt = sum(d.balance for d in debts)
-    avg_apr = sum(d.interest_rate for d in debts) / len(debts) if debts else 0
-    dti = ((sum(b.amount for b in bills) + sum(d.min_payment for d in debts)) / get_monthly_income_value() * 100)
+    avg_apr = sum(d.interest_rate for d in debts) / (len(debts) if debts else 1)
+    
+    # SAFETY: Fix for ZeroDivisionError
+    total_obligations = sum(b.amount for b in bills) + sum(d.min_payment for d in debts)
+    dti = (total_obligations / monthly_inc * 100) if monthly_inc > 0 else 0
 
     return render_template('dashboard.html', 
                            groups=paycheck_groups, 
                            total_debt=total_debt, 
-                           avg_apr=avg_apr,
-                           dti=dti)
+                           avg_apr=avg_apr if debts else 0,
+                           dti=dti,
+                           summary={"income": monthly_inc, "cashflow": monthly_inc - total_obligations})
 
 @app.route('/income', methods=['GET', 'POST'])
 def manage_income():

@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% block content %}
 <div class="row g-4 mb-5">
     <div class="col-md-4">
@@ -11,16 +10,16 @@
     </div>
     <div class="col-md-4">
         <div class="stat-card">
-            <div class="metric-label">DTI (Health)</div>
+            <div class="metric-label">DTI (Financial Health)</div>
             <div class="metric-value {{ 'text-danger' if dti > 36 else 'text-info' }}">{{ "%.1f"|format(dti) }}%</div>
-            <small class="text-muted">Safe Zone: < 36%</small>
+            <small class="text-muted">Goal: Stay below 36%</small>
         </div>
     </div>
     <div class="col-md-4">
         <div class="stat-card">
-            <div class="metric-label">Total Monthly Interest Saved</div>
-            <div class="metric-value text-success">$0.00</div>
-            <small class="text-muted">Direct remainder to debt to increase this</small>
+            <div class="metric-label">Monthly "Attack Power"</div>
+            <div class="metric-value text-success">${{ "%.2f"|format(summary.cashflow) }}</div>
+            <small class="text-muted">Available for Snowball/Avalanche</small>
         </div>
     </div>
 </div>
@@ -29,8 +28,8 @@
 {% for group in groups %}
 <div class="stat-card mb-4 pay-group-{{ loop.index % 3 + 1 }}">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold m-0 text-primary">Paycheck: {{ group.date.strftime('%m/%d/%Y') }}</h5>
-        <span class="remainder-pill">Available to Attack Debt: ${{ "%.2f"|format(group.remainder) }}</span>
+        <h5 class="fw-bold m-0 text-primary">Check Date: {{ group.date.strftime('%m/%d/%Y') }}</h5>
+        <span class="remainder-pill">Left to Attack Debt: ${{ "%.2f"|format(group.remainder) }}</span>
     </div>
     <table class="table table-dark table-sm border-0 m-0">
         <thead>
@@ -45,8 +44,8 @@
             </tr>
             {% endfor %}
             <tr class="border-top border-secondary">
-                <td colspan="2" class="text-muted small">Income: +${{ "%.2f"|format(group.income) }}</td>
-                <td class="text-end fw-bold">Net: ${{ "%.2f"|format(group.remainder) }}</td>
+                <td colspan="2" class="text-muted small">Check Amount: +${{ "%.2f"|format(group.income) }}</td>
+                <td class="text-end fw-bold">Check Remainder: ${{ "%.2f"|format(group.remainder) }}</td>
             </tr>
         </tbody>
     </table>
