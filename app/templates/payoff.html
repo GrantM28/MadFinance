@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Debt Payoff</h2>
+    <div class="text-muted">More detail on avalanche vs snowball + what-if scenarios.</div>
+  </div>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-custom">
+    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+  </a>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="stat-card">
+      <div class="metric-label">Current extra / month</div>
+      <div class="metric-value text-success">${{ "%.0f"|format(extra_monthly) }}</div>
+      <small class="text-muted">Cashflow now: ${{ "%.0f"|format(cashflow) }}</small>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="stat-card">
+      <div class="metric-label">Default method</div>
+      <div class="metric-value text-info">{{ method|capitalize }}</div>
+      <small class="text-muted">Change in Dashboard strategy controls.</small>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="stat-card">
+      <h5 class="fw-bold text-primary">Avalanche</h5>
+      <div class="metric-value">{{ ava.months }} months</div>
+      <div class="text-muted">
+        {% if ava.date %}Debt-free: <span class="fw-bold text-white">{{ ava.date.strftime('%m/%d/%Y') }}</span>{% endif %}
+      </div>
+      <div class="text-muted">
+        Interest: <span class="fw-bold text-white">{% if ava.unreachable %}∞{% else %}${{ "%.0f"|format(ava.interest) }}{% endif %}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="stat-card">
+      <h5 class="fw-bold text-info">Snowball</h5>
+      <div class="metric-value">{{ snb.months }} months</div>
+      <div class="text-muted">
+        {% if snb.date %}Debt-free: <span class="fw-bold text-white">{{ snb.date.strftime('%m/%d/%Y') }}</span>{% endif %}
+      </div>
+      <div class="text-muted">
+        Interest: <span class="fw-bold text-white">{% if snb.unreachable %}∞{% else %}${{ "%.0f"|format(snb.interest) }}{% endif %}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stat-card">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="fw-bold m-0">What-if: Add more extra per month</h5>
+    <span class="badge bg-secondary">Preview</span>
+  </div>
+
+  <table class="table table-dark table-hover align-middle">
+    <thead>
+      <tr class="text-muted small">
+        <th>EXTRA / MO</th>
+        <th>AVALANCHE (MO)</th>
+        <th>AVALANCHE INT</th>
+        <th>SNOWBALL (MO)</th>
+        <th>SNOWBALL INT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in scenarios %}
+      <tr>
+        <td class="fw-bold text-success">${{ "%.0f"|format(s.extra) }}</td>
+        <td>{{ s.ava_months }}</td>
+        <td>${{ "%.0f"|format(s.ava_interest) }}</td>
+        <td>{{ s.snb_months }}</td>
+        <td>${{ "%.0f"|format(s.snb_interest) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

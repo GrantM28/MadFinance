@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Settings</h2>
+    <div class="text-muted">Configure defaults + calculation behavior.</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="stat-card">
+      <h5 class="fw-bold mb-3">Defaults</h5>
+
+      <form method="POST" action="{{ url_for('settings') }}">
+        <div class="mb-3">
+          <label class="small text-muted">DEFAULT STRATEGY</label>
+          <select name="default_strategy" class="form-select">
+            <option value="avalanche" {{ 'selected' if s.default_strategy == 'avalanche' else '' }}>Avalanche</option>
+            <option value="snowball" {{ 'selected' if s.default_strategy == 'snowball' else '' }}>Snowball</option>
+          </select>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" name="include_bills_in_dti" id="includeBills"
+                 {{ 'checked' if s.include_bills_in_dti else '' }}>
+          <label class="form-check-label" for="includeBills">
+            Include bills in "Cashflow Burden" chart (recommended)
+          </label>
+          <div class="text-muted small mt-1">
+            Lender DTI still uses debt minimums only.
+          </div>
+        </div>
+
+        <button class="btn btn-primary">Save Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="stat-card">
+      <h5 class="fw-bold mb-3">Coming soon</h5>
+      <div class="text-muted">
+        - Auto-roll bills monthly (recurring bill templates)<br>
+        - Import transactions (optional)<br>
+        - Paycheck generator (no manual next-pay-date)<br>
+        - Categories + reports
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

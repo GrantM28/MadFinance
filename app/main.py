@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta, date
+import calendar
 import os
+import math
 
 app = Flask(__name__)
-app.secret_key = "strategy_engine_secret"
+app.secret_key = "finance_strategy_engine_secret"
 
-# Database Setup
+# ---------------- DB ----------------
 db_path = os.path.join(os.path.dirname(__file__), 'data', 'strategy.db')
 os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
@@ -36,25 +38,59 @@ class Debt(db.Model):
     interest_rate = db.Column(db.Float, nullable=False)  # APR %
     min_payment = db.Column(db.Float, nullable=False)
 
+class PlannedPayment(db.Model):
+    """
+    Monthly Schedule items (what your wife does in Excel)
+    Ex: 02/01/2026 : BHG Loan : $400
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    pay_date = db.Column(db.Date, nullable=False)
+    name = db.Column(db.String(140), nullable=False)  # "BHG Loan", "Trash", etc
+    amount = db.Column(db.Float, nullable=False)
+    kind = db.Column(db.String(30), nullable=False, default="debt")  # debt, bill, other (for filtering/colors)
+
+class Setting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(80), unique=True, nullable=False)
+    value = db.Column(db.String(200), nullable=False)
+
 with app.app_context():
     db.create_all()
 
 # ---------------- HELPERS ----------------
 
-def _to_float(val, default=0.0):
+def _to_float(val, default=None):
     try:
         return float(val)
     except Exception:
         return default
 
 def _parse_date(val):
-    """Accept YYYY-MM-DD or blank."""
     if not val:
         return None
     try:
         return datetime.strptime(val, "%Y-%m-%d").date()
     except Exception:
         return None
+
+def get_setting(key, default=None):
+    s = Setting.query.filter_by(key=key).first()
+    return s.value if s else default
+
+def set_setting(key, value):
+    s = Setting.query.filter_by(key=key).first()
+    if not s:
+        s = Setting(key=key, value=str(value))
+        db.session.add(s)
+    else:
+        s.value = str(value)
+    db.session.commit()
+
+def bool_setting(key, default=False):
+    v = get_setting(key, None)
+    if v is None:
+        return default
+    return str(v).lower() in ("1", "true", "yes", "on")
 
 def get_monthly_income_value():
     incomes = Income.query.all()
@@ -74,11 +110,31 @@ def weighted_apr(debts):
         return 0.0
     return sum((d.balance / total_bal) * d.interest_rate for d in debts)
 
+def month_bounds(year, month):
+    first = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    last = date(year, month, last_day)
+    return first, last
+
+def parse_month_param(month_str):
+    # expects YYYY-MM
+    if not month_str:
+        today = date.today()
+        return today.year, today.month
+    try:
+        y, m = month_str.split("-")
+        y = int(y); m = int(m)
+        if m < 1 or m > 12:
+            raise ValueError
+        return y, m
+    except Exception:
+        today = date.today()
+        return today.year, today.month
+
 def simulate_payoff(debts, extra_monthly=0.0, method="avalanche", max_months=600):
     """
-    Monthly compounding payoff sim (good enough for planning).
-    Returns:
-      months, payoff_date, total_interest
+    Monthly compounding sim.
+    Uses min payments + extra (attack power).
     """
     if not debts:
         return 0, None, 0.0
@@ -99,20 +155,17 @@ def simulate_payoff(debts, extra_monthly=0.0, method="avalanche", max_months=600
     total_interest = 0.0
     start = date.today()
 
-    # quick “impossible payoff” guard if minimums are too low (interest-only treadmill)
-    # Not perfect, but prevents infinite loops.
-    if all(d["bal"] > 0 for d in sim):
-        monthly_interest_floor = sum(d["bal"] * (d["apr"] / 12) for d in sim)
-        monthly_payment_floor = sum(d["min"] for d in sim) + max(extra_monthly, 0)
-        if monthly_payment_floor <= monthly_interest_floor:
-            return max_months, None, float("inf")
+    monthly_payment_floor = sum(d["min"] for d in sim) + max(extra_monthly, 0)
+    monthly_interest_floor = sum(d["bal"] * (d["apr"] / 12) for d in sim)
+    if monthly_payment_floor <= monthly_interest_floor:
+        return max_months, None, float("inf")
 
     while any(d["bal"] > 0.01 for d in sim):
         months += 1
         if months > max_months:
             return max_months, None, total_interest
 
-        # interest accrues
+        # interest
         for d in sim:
             if d["bal"] <= 0:
                 continue
@@ -120,14 +173,14 @@ def simulate_payoff(debts, extra_monthly=0.0, method="avalanche", max_months=600
             total_interest += interest
             d["bal"] += interest
 
-        # pay minimums
+        # mins
         for d in sim:
             if d["bal"] <= 0:
                 continue
             pay = min(d["min"], d["bal"])
             d["bal"] -= pay
 
-        # apply extra to priority debt
+        # extra
         extra = max(extra_monthly, 0.0)
         while extra > 0.01 and any(d["bal"] > 0.01 for d in sim):
             sim.sort(key=sort_key)
@@ -143,202 +196,306 @@ def simulate_payoff(debts, extra_monthly=0.0, method="avalanche", max_months=600
 
 # ---------------- DASHBOARD ----------------
 
-@app.route('/')
+@app.route("/")
 def dashboard():
-    incomes = Income.query.order_by(Income.next_pay_date).all()
-    bills = Bill.query.order_by(Bill.due_date).all()
     debts = Debt.query.all()
+    bills = Bill.query.all()
 
-    # Build check-to-check schedule (your existing feature)
-    paycheck_groups = []
-    for i, inc in enumerate(incomes):
-        if not inc.next_pay_date:
-            continue
-
-        start_date = inc.next_pay_date
-        end_date = incomes[i+1].next_pay_date if (i+1 < len(incomes) and incomes[i+1].next_pay_date) else start_date + timedelta(days=14)
-
-        period_bills = [b for b in bills if b.due_date and start_date <= b.due_date < end_date]
-        debt_share = sum(d.min_payment for d in debts) / (len(incomes) if incomes else 1)
-
-        bill_sum = sum(b.amount for b in period_bills)
-        remainder = inc.amount - bill_sum - debt_share
-
-        paycheck_groups.append({
-            'date': start_date,
-            'income': inc.amount,
-            'bills': period_bills,
-            'bill_total': bill_sum,
-            'debt_min': debt_share,
-            'remainder': remainder
-        })
-
-    monthly_inc = get_monthly_income_value()
+    monthly_income = get_monthly_income_value()
     total_debt = sum(d.balance for d in debts)
-    w_apr = weighted_apr(debts)
-    total_bills = sum(b.amount for b in bills)
     total_min_debt = sum(d.min_payment for d in debts)
-    total_obligations = total_bills + total_min_debt
-    dti = (total_obligations / monthly_inc * 100) if monthly_inc > 0 else 0.0
-    cashflow = monthly_inc - total_obligations
+    total_bills = sum(b.amount for b in bills)
+    obligations = total_bills + total_min_debt
+    cashflow = monthly_income - obligations
 
-    # Strategy controls (persist in session)
-    strat_method = session.get("strategy_method", "avalanche")
+    # DTI: you asked about bills being included.
+    # We'll show BOTH:
+    # - cashflow burden: bills + debt mins
+    # - lender-ish DTI: debt mins only (and you can add "housing_in_dti" later)
+    cashflow_burden_pct = (obligations / monthly_income * 100) if monthly_income > 0 else 0.0
+    lender_dti_pct = (total_min_debt / monthly_income * 100) if monthly_income > 0 else 0.0
+
+    w_apr = weighted_apr(debts)
+
+    # Strategy controls
+    method = session.get("strategy_method", get_setting("default_strategy", "avalanche") or "avalanche")
     extra_override = session.get("extra_override", None)
-
-    # Default extra is your cashflow (attack power) but never negative
     extra_monthly = max(cashflow, 0.0) if extra_override is None else max(float(extra_override), 0.0)
 
-    ava_m, ava_date, ava_int = simulate_payoff(debts, extra_monthly=extra_monthly, method="avalanche")
-    snb_m, snb_date, snb_int = simulate_payoff(debts, extra_monthly=extra_monthly, method="snowball")
+    ava_m, ava_date, ava_int = simulate_payoff(debts, extra_monthly, "avalanche")
+    snb_m, snb_date, snb_int = simulate_payoff(debts, extra_monthly, "snowball")
 
     summary = {
-        "income": monthly_inc,
-        "bills": total_bills,
-        "debt_min": total_min_debt,
-        "obligations": total_obligations,
-        "cashflow": cashflow,
+        "monthly_income": monthly_income,
         "total_debt": total_debt,
         "weighted_apr": w_apr,
-        "dti": dti,
+        "bills": total_bills,
+        "debt_mins": total_min_debt,
+        "obligations": obligations,
+        "cashflow": cashflow,
+        "cashflow_burden_pct": cashflow_burden_pct,
+        "lender_dti_pct": lender_dti_pct,
+        "strategy_method": method,
         "extra_monthly": extra_monthly,
-        "strategy_method": strat_method,
         "ava": {"months": ava_m, "date": ava_date, "interest": ava_int},
         "snb": {"months": snb_m, "date": snb_date, "interest": snb_int},
+        "ava_unreachable": (ava_int == float("inf")),
+        "snb_unreachable": (snb_int == float("inf")),
     }
 
-    summary["ava_unreachable"] = (ava_int == float("inf"))
-    summary["snb_unreachable"] = (snb_int == float("inf"))
+    # chart payload: debt balances + mins
+    debt_chart = [{
+        "name": d.name,
+        "balance": float(d.balance),
+        "apr": float(d.interest_rate),
+        "min": float(d.min_payment),
+    } for d in debts]
 
-    return render_template(
-        'dashboard.html',
-        groups=paycheck_groups,
-        summary=summary,
-        debts=debts
-    )
+    return render_template("dashboard.html", summary=summary, debt_chart=debt_chart)
 
-@app.route('/strategy', methods=['POST'])
-def set_strategy():
-    method = request.form.get("method", "avalanche").strip().lower()
+@app.route("/strategy", methods=["POST"])
+def set_strategy_route():
+    method = (request.form.get("method") or "avalanche").strip().lower()
     if method not in ("avalanche", "snowball"):
         method = "avalanche"
+    session["strategy_method"] = method
 
-    extra_raw = request.form.get("extra_override", "").strip()
+    extra_raw = (request.form.get("extra_override") or "").strip()
     if extra_raw == "":
         session["extra_override"] = None
     else:
         session["extra_override"] = _to_float(extra_raw, 0.0)
 
-    session["strategy_method"] = method
     return redirect(url_for("dashboard"))
 
 # ---------------- INCOME ----------------
 
-@app.route('/income', methods=['GET', 'POST'])
+@app.route("/income", methods=["GET", "POST"])
 def manage_income():
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        amount = _to_float(request.form.get('amount'), None)
-        freq = request.form.get('frequency', 'Monthly')
-
-        # IMPORTANT: don’t hard-crash if missing. Your old code did request.form['next_pay_date'] :contentReference[oaicite:3]{index=3}
-        p_date = _parse_date(request.form.get('next_pay_date'))
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        amount = _to_float(request.form.get("amount"), None)
+        freq = request.form.get("frequency") or "Monthly"
+        p_date = _parse_date(request.form.get("next_pay_date"))
 
         if not name or amount is None:
             flash("Income requires a name and amount.", "danger")
-            return redirect(url_for('manage_income'))
+            return redirect(url_for("manage_income"))
 
-        new_inc = Income(name=name, amount=float(amount), frequency=freq, next_pay_date=p_date)
-        db.session.add(new_inc)
+        db.session.add(Income(name=name, amount=float(amount), frequency=freq, next_pay_date=p_date))
         db.session.commit()
         flash("Income added.", "success")
-        return redirect(url_for('manage_income'))
+        return redirect(url_for("manage_income"))
 
-    return render_template('income.html', incomes=Income.query.all())
+    incomes = Income.query.order_by(Income.name.asc()).all()
+    return render_template("income.html", incomes=incomes)
 
 # ---------------- DEBT ----------------
 
-@app.route('/debt', methods=['GET', 'POST'])
+@app.route("/debt", methods=["GET", "POST"])
 def manage_debt():
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        balance = _to_float(request.form.get('balance'), None)
-        apr = _to_float(request.form.get('apr'), None)
-        min_pay = _to_float(request.form.get('min_pay'), None)
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        balance = _to_float(request.form.get("balance"), None)
+        apr = _to_float(request.form.get("apr"), None)
+        min_pay = _to_float(request.form.get("min_pay"), None)
 
         if not name or balance is None or apr is None or min_pay is None:
             flash("Debt requires name, balance, APR, and minimum payment.", "danger")
-            return redirect(url_for('manage_debt'))
+            return redirect(url_for("manage_debt"))
 
-        new_debt = Debt(name=name, balance=float(balance), interest_rate=float(apr), min_payment=float(min_pay))
-        db.session.add(new_debt)
+        db.session.add(Debt(name=name, balance=float(balance), interest_rate=float(apr), min_payment=float(min_pay)))
         db.session.commit()
         flash("Debt added.", "success")
-        return redirect(url_for('manage_debt'))
+        return redirect(url_for("manage_debt"))
 
-    return render_template('debt.html', debts=Debt.query.all())
+    debts = Debt.query.order_by(Debt.name.asc()).all()
+    return render_template("debt.html", debts=debts)
 
 # ---------------- BILLS ----------------
 
-@app.route('/bills', methods=['GET', 'POST'])
+@app.route("/bills", methods=["GET", "POST"])
 def manage_bills():
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        amount = _to_float(request.form.get('amount'), None)
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        amount = _to_float(request.form.get("amount"), None)
+        due_date = _parse_date(request.form.get("due_date"))
 
-        # FIX: don’t hard-crash on missing due_date (your error)
-        # Your old code did request.form['due_date'] :contentReference[oaicite:4]{index=4}
-        due_date_val = request.form.get('due_date')
+        if not name or amount is None or due_date is None:
+            flash("Bill requires name, amount, and due date.", "danger")
+            return redirect(url_for("manage_bills"))
 
-        # Back-compat: if you ever had due_day in older forms
-        due_day_val = request.form.get('due_day')
-
-        d_date = _parse_date(due_date_val)
-        if d_date is None and due_day_val:
-            # Convert day-of-month into a date in current month (or next month if already passed)
-            try:
-                day = int(due_day_val)
-                today = date.today()
-                candidate = date(today.year, today.month, min(max(day, 1), 28))
-                if candidate < today:
-                    # move to next month safely
-                    if today.month == 12:
-                        candidate = date(today.year + 1, 1, min(max(day, 1), 28))
-                    else:
-                        candidate = date(today.year, today.month + 1, min(max(day, 1), 28))
-                d_date = candidate
-            except Exception:
-                d_date = None
-
-        if not name or amount is None:
-            flash("Bill requires a name and amount.", "danger")
-            return redirect(url_for('manage_bills'))
-
-        if d_date is None:
-            flash("Bill requires a valid due date.", "danger")
-            return redirect(url_for('manage_bills'))
-
-        new_bill = Bill(name=name, amount=float(amount), due_date=d_date)
-        db.session.add(new_bill)
+        db.session.add(Bill(name=name, amount=float(amount), due_date=due_date))
         db.session.commit()
         flash("Bill added.", "success")
-        return redirect(url_for('manage_bills'))
+        return redirect(url_for("manage_bills"))
 
-    return render_template('bills.html', bills=Bill.query.order_by(Bill.due_date).all())
+    bills = Bill.query.order_by(Bill.due_date.asc()).all()
+    return render_template("bills.html", bills=bills)
+
+# ---------------- MONTHLY SCHEDULE ----------------
+
+@app.route("/schedule")
+def monthly_schedule():
+    y, m = parse_month_param(request.args.get("month"))
+    start, end = month_bounds(y, m)
+
+    # all planned items for this month
+    items = PlannedPayment.query.filter(PlannedPayment.pay_date >= start, PlannedPayment.pay_date <= end)\
+                                .order_by(PlannedPayment.pay_date.asc()).all()
+
+    # group by day for rendering
+    by_day = {}
+    for it in items:
+        by_day.setdefault(it.pay_date, []).append(it)
+
+    # dropdown options come from debts + bills (plus "Other")
+    debts = Debt.query.order_by(Debt.name.asc()).all()
+    bills = Bill.query.order_by(Bill.name.asc()).all()
+
+    options = []
+    for d in debts:
+        options.append({"label": f"Debt: {d.name}", "name": d.name, "kind": "debt"})
+    for b in bills:
+        options.append({"label": f"Bill: {b.name}", "name": b.name, "kind": "bill"})
+    options.append({"label": "Other (custom)", "name": "__custom__", "kind": "other"})
+
+    # day list
+    days = []
+    cur = start
+    while cur <= end:
+        days.append(cur)
+        cur += timedelta(days=1)
+
+    month_label = date(y, m, 1).strftime("%B %Y")
+    month_param = f"{y:04d}-{m:02d}"
+
+    return render_template(
+        "schedule.html",
+        days=days,
+        by_day=by_day,
+        options=options,
+        month_label=month_label,
+        month_param=month_param
+    )
+
+@app.route("/schedule/add", methods=["POST"])
+def add_schedule_item():
+    pay_date = _parse_date(request.form.get("pay_date"))
+    sel_name = (request.form.get("sel_name") or "").strip()
+    custom_name = (request.form.get("custom_name") or "").strip()
+    amount = _to_float(request.form.get("amount"), None)
+    kind = (request.form.get("kind") or "debt").strip().lower()
+
+    month_param = request.form.get("month_param") or ""
+
+    if pay_date is None or amount is None:
+        flash("Schedule item needs a date and amount.", "danger")
+        return redirect(url_for("monthly_schedule", month=month_param))
+
+    if sel_name == "__custom__":
+        if not custom_name:
+            flash("Choose a name or type a custom name.", "danger")
+            return redirect(url_for("monthly_schedule", month=month_param))
+        name = custom_name
+        kind = "other"
+    else:
+        name = sel_name
+        if kind not in ("debt", "bill", "other"):
+            kind = "other"
+
+    db.session.add(PlannedPayment(pay_date=pay_date, name=name, amount=float(amount), kind=kind))
+    db.session.commit()
+    flash("Planned payment added.", "success")
+    return redirect(url_for("monthly_schedule", month=month_param))
+
+@app.route("/schedule/delete/<int:item_id>")
+def delete_schedule_item(item_id):
+    it = PlannedPayment.query.get_or_404(item_id)
+    # redirect back to its month
+    month_param = it.pay_date.strftime("%Y-%m")
+    db.session.delete(it)
+    db.session.commit()
+    flash("Planned payment deleted.", "success")
+    return redirect(url_for("monthly_schedule", month=month_param))
+
+# ---------------- DEBT PAYOFF ----------------
+
+@app.route("/payoff")
+def payoff():
+    debts = Debt.query.all()
+    monthly_income = get_monthly_income_value()
+    bills = Bill.query.all()
+    obligations = sum(b.amount for b in bills) + sum(d.min_payment for d in debts)
+    cashflow = monthly_income - obligations
+
+    method = session.get("strategy_method", get_setting("default_strategy", "avalanche") or "avalanche")
+    extra_override = session.get("extra_override", None)
+    extra_monthly = max(cashflow, 0.0) if extra_override is None else max(float(extra_override), 0.0)
+
+    ava_m, ava_date, ava_int = simulate_payoff(debts, extra_monthly, "avalanche")
+    snb_m, snb_date, snb_int = simulate_payoff(debts, extra_monthly, "snowball")
+
+    # What-if table: extra amounts
+    bumps = [0, 100, 250, 500, 1000]
+    scenarios = []
+    for bump in bumps:
+        extra = max(extra_monthly + bump, 0.0)
+        m1, d1, i1 = simulate_payoff(debts, extra, "avalanche")
+        m2, d2, i2 = simulate_payoff(debts, extra, "snowball")
+        scenarios.append({
+            "extra": extra,
+            "ava_months": m1,
+            "ava_interest": i1,
+            "snb_months": m2,
+            "snb_interest": i2,
+        })
+
+    return render_template(
+        "payoff.html",
+        method=method,
+        extra_monthly=extra_monthly,
+        cashflow=cashflow,
+        ava={"months": ava_m, "date": ava_date, "interest": ava_int, "unreachable": (ava_int == float("inf"))},
+        snb={"months": snb_m, "date": snb_date, "interest": snb_int, "unreachable": (snb_int == float("inf"))},
+        scenarios=scenarios
+    )
+
+# ---------------- SETTINGS ----------------
+
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if request.method == "POST":
+        default_strategy = request.form.get("default_strategy") or "avalanche"
+        set_setting("default_strategy", default_strategy)
+
+        # placeholder toggles (you can add more)
+        include_bills_in_dti = "1" if request.form.get("include_bills_in_dti") == "on" else "0"
+        set_setting("include_bills_in_dti", include_bills_in_dti)
+
+        flash("Settings saved.", "success")
+        return redirect(url_for("settings"))
+
+    current = {
+        "default_strategy": get_setting("default_strategy", "avalanche"),
+        "include_bills_in_dti": bool_setting("include_bills_in_dti", True)
+    }
+    return render_template("settings.html", s=current)
 
 # ---------------- DELETE ----------------
 
-@app.route('/delete/<string:category>/<int:id>')
-def delete_item(category, id):
-    model_map = {'income': Income, 'debt': Debt, 'bill': Bill}
+@app.route("/delete/<string:category>/<int:item_id>")
+def delete_item(category, item_id):
+    model_map = {"income": Income, "debt": Debt, "bill": Bill}
     if category not in model_map:
         flash("Invalid delete category.", "danger")
-        return redirect(request.referrer or url_for("dashboard"))
-    item = model_map[category].query.get_or_404(id)
+        return redirect(url_for("dashboard"))
+
+    item = model_map[category].query.get_or_404(item_id)
     db.session.delete(item)
     db.session.commit()
     flash("Deleted.", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

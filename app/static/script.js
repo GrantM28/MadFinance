@@ -3,18 +3,15 @@
  */
 
 function destroyIfExists(key) {
-  if (window[key]) {
-    window[key].destroy();
-    window[key] = null;
-  }
+  if (window[key]) { window[key].destroy(); window[key] = null; }
 }
 
 function initDtiChart(obligations, freeCashflow) {
   const el = document.getElementById('dtiChart');
   if (!el) return;
 
-  const ctx = el.getContext('2d');
   destroyIfExists("dtiChartInstance");
+  const ctx = el.getContext('2d');
 
   window.dtiChartInstance = new Chart(ctx, {
     type: 'doughnut',
@@ -23,9 +20,9 @@ function initDtiChart(obligations, freeCashflow) {
       datasets: [{
         data: [obligations, freeCashflow],
         backgroundColor: ['#fb7185', '#34d399'],
-        hoverOffset: 10,
         borderWidth: 0,
-        borderRadius: 6
+        borderRadius: 6,
+        hoverOffset: 10
       }]
     },
     options: {
@@ -33,62 +30,37 @@ function initDtiChart(obligations, freeCashflow) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: {
-            color: '#cbd5e1',
-            padding: 16,
-            font: { size: 12, weight: '600' }
-          }
+          labels: { color: '#cbd5e1', padding: 16, font: { size: 12, weight: '600' } }
         },
         tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.label}: $${Math.round(ctx.raw).toLocaleString()}`
-          }
+          callbacks: { label: (ctx) => `${ctx.label}: $${Math.round(ctx.raw).toLocaleString()}` }
         }
       }
     }
   });
 }
 
-function initDebtBarChart(debts) {
+function initDebtBarChart(debtChart) {
   const el = document.getElementById('debtBarChart');
   if (!el) return;
 
-  const ctx = el.getContext('2d');
   destroyIfExists("debtBarChartInstance");
+  const ctx = el.getContext('2d');
 
-  const labels = debts.map(d => d.name);
-  const data = debts.map(d => d.balance);
+  const labels = debtChart.map(d => d.name);
+  const data = debtChart.map(d => d.balance);
 
   window.debtBarChartInstance = new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Balance',
-        data,
-        borderWidth: 0,
-        borderRadius: 10
-      }]
-    },
+    data: { labels, datasets: [{ label: 'Balance', data, borderWidth: 0, borderRadius: 10 }] },
     options: {
-      responsive: true,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `$${Math.round(ctx.raw).toLocaleString()}`
-          }
-        }
+        tooltip: { callbacks: { label: (ctx) => `$${Math.round(ctx.raw).toLocaleString()}` } }
       },
       scales: {
-        x: {
-          ticks: { color: '#cbd5e1', font: { weight: '600' } },
-          grid: { color: 'rgba(148,163,184,0.10)' }
-        },
-        y: {
-          ticks: { color: '#cbd5e1' },
-          grid: { color: 'rgba(148,163,184,0.10)' }
-        }
+        x: { ticks: { color: '#cbd5e1', font: { weight: '600' } }, grid: { color: 'rgba(148,163,184,0.10)' } },
+        y: { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(148,163,184,0.10)' } }
       }
     }
   });

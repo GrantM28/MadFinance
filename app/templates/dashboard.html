@@ -3,63 +3,59 @@
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
   <div>
-    <h2 class="fw-bold mb-1">Monthly Planner</h2>
-    <div class="text-muted">Bills + minimum debt payments across paychecks. Like your Excel sheet, but not painful.</div>
+    <h2 class="fw-bold mb-1">Dashboard</h2>
+    <div class="text-muted">Totals, charts, and payoff strategy. Schedule lives in Monthly Schedule.</div>
   </div>
 
-  <div class="d-flex gap-2 align-items-center">
-    <button class="btn btn-outline-custom" type="button" data-bs-toggle="collapse" data-bs-target="#strategyPanel">
-      <i class="bi bi-sliders me-1"></i> Strategy (optional)
-    </button>
-  </div>
+  <button class="btn btn-outline-custom" type="button" data-bs-toggle="collapse" data-bs-target="#strategyPanel">
+    <i class="bi bi-sliders me-1"></i> Strategy Controls
+  </button>
 </div>
 
-<!-- Top summary row (Excel "Totals") -->
 <div class="row g-4 mb-4">
   <div class="col-md-3">
     <div class="stat-card">
       <div class="metric-label">Monthly Income</div>
-      <div class="metric-value text-info">${{ "%.0f"|format(summary.income) }}</div>
-      <small class="text-muted">All sources normalized monthly</small>
+      <div class="metric-value text-info">${{ "%.0f"|format(summary.monthly_income) }}</div>
+      <small class="text-muted">Normalized monthly</small>
     </div>
   </div>
   <div class="col-md-3">
     <div class="stat-card">
-      <div class="metric-label">Bills</div>
-      <div class="metric-value text-danger">${{ "%.0f"|format(summary.bills) }}</div>
-      <small class="text-muted">Fixed obligations</small>
+      <div class="metric-label">Total Debt</div>
+      <div class="metric-value text-danger">${{ "%.0f"|format(summary.total_debt) }}</div>
+      <small class="text-muted">Weighted APR: {{ "%.2f"|format(summary.weighted_apr) }}%</small>
     </div>
   </div>
   <div class="col-md-3">
     <div class="stat-card">
-      <div class="metric-label">Debt Minimums</div>
-      <div class="metric-value text-warning">${{ "%.0f"|format(summary.debt_min) }}</div>
-      <small class="text-muted">Monthly minimum payments</small>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="stat-card">
-      <div class="metric-label">Leftover</div>
-      <div class="metric-value {{ 'text-danger' if summary.cashflow < 0 else 'text-success' }}">
-        ${{ "%.0f"|format(summary.cashflow) }}
+      <div class="metric-label">Cashflow Burden</div>
+      <div class="metric-value {{ 'text-danger' if summary.cashflow_burden_pct > 60 else 'text-info' }}">
+        {{ "%.1f"|format(summary.cashflow_burden_pct) }}%
       </div>
-      <small class="text-muted">After bills + minimums</small>
+      <small class="text-muted">Bills + debt mins / income</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="metric-label">Lender DTI</div>
+      <div class="metric-value {{ 'text-danger' if summary.lender_dti_pct > 36 else 'text-info' }}">
+        {{ "%.1f"|format(summary.lender_dti_pct) }}%
+      </div>
+      <small class="text-muted">Debt mins / income</small>
     </div>
   </div>
 </div>
 
-<!-- Optional Strategy Controls (collapsed) -->
 <div class="collapse mb-4" id="strategyPanel">
   <div class="stat-card">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
       <div>
-        <h5 class="fw-bold m-0">Debt Strategy (Optional)</h5>
-        <div class="small" style="color:#d1d5db;">
-          This doesn’t change your planner. It only affects payoff projections.
-        </div>
+        <h5 class="fw-bold m-0">Payoff Strategy</h5>
+        <div class="small" style="color:#d1d5db;">Extra “attack power” defaults to leftover cashflow.</div>
       </div>
 
-      <form class="d-flex flex-wrap gap-2 align-items-center" action="{{ url_for('set_strategy') }}" method="POST">
+      <form class="d-flex flex-wrap gap-2 align-items-center" action="{{ url_for('set_strategy_route') }}" method="POST">
         <select name="method" class="form-select" style="min-width: 200px;">
           <option value="avalanche" {{ 'selected' if summary.strategy_method == 'avalanche' else '' }}>Avalanche (Highest APR)</option>
           <option value="snowball" {{ 'selected' if summary.strategy_method == 'snowball' else '' }}>Snowball (Smallest Balance)</option>
@@ -93,103 +89,32 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Main: Left = Planner table, Right = Charts -->
 <div class="row g-4">
-  <!-- Planner -->
-  <div class="col-lg-7">
+  <div class="col-lg-4">
     <div class="stat-card">
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h5 class="fw-bold m-0">Paycheck Plan</h5>
-        <span class="badge bg-secondary">Group by pay period</span>
-      </div>
-
-      {% if groups|length == 0 %}
-        <div class="text-muted">
-          Add Income sources with “Next Pay Date” so the planner can build paycheck windows.
-        </div>
-      {% endif %}
-
-      {% for g in groups %}
-      <div class="planner-block mb-4">
-        <div class="planner-head d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="planner-title">
-            <span class="text-primary fw-bold">Check Date:</span>
-            <span class="fw-bold">{{ g.date.strftime('%m/%d/%Y') }}</span>
-            <span class="text-muted ms-2">Income: ${{ "%.2f"|format(g.income) }}</span>
-          </div>
-
-          <span class="remainder-pill">
-            Left after bills + debt mins: ${{ "%.2f"|format(g.remainder) }}
-          </span>
-        </div>
-
-        <div class="table-responsive mt-3">
-          <table class="table table-dark table-hover table-sm align-middle m-0">
-            <thead>
-              <tr class="text-muted small">
-                <th style="width:140px;">DUE</th>
-                <th>ITEM</th>
-                <th class="text-end" style="width:140px;">AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for b in g.bills %}
-              <tr>
-                <td class="text-muted">{% if b.due_date %}{{ b.due_date.strftime('%m/%d/%Y') }}{% else %}—{% endif %}</td>
-                <td class="fw-semibold">{{ b.name }}</td>
-                <td class="text-end text-danger">-${{ "%.2f"|format(b.amount) }}</td>
-              </tr>
-              {% endfor %}
-
-              <tr class="border-top border-secondary">
-                <td class="text-muted small" colspan="2">Bills total</td>
-                <td class="text-end fw-bold">-${{ "%.2f"|format(g.bill_total) }}</td>
-              </tr>
-
-              <tr>
-                <td class="text-muted small" colspan="2">Debt minimum share (split across checks)</td>
-                <td class="text-end fw-bold text-warning">-${{ "%.2f"|format(g.debt_min) }}</td>
-              </tr>
-
-              <tr class="border-top border-secondary">
-                <td class="text-muted small" colspan="2">Remainder</td>
-                <td class="text-end fw-bold">{{ "$%.2f"|format(g.remainder) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Charts -->
-  <div class="col-lg-5">
-    <div class="stat-card mb-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="fw-bold">DTI</div>
+        <div class="fw-bold">Obligations vs Free</div>
         <span class="badge bg-secondary">Monthly</span>
       </div>
       <canvas id="dtiChart" height="220"></canvas>
       <div class="text-muted small mt-2">
-        DTI: <span class="fw-bold">{{ "%.1f"|format(summary.dti) }}%</span>
-        • Obligations: ${{ "%.0f"|format(summary.obligations) }}
+        Obligations: ${{ "%.0f"|format(summary.obligations) }} • Free: ${{ "%.0f"|format(summary.cashflow) }}
       </div>
     </div>
+  </div>
 
+  <div class="col-lg-8">
     <div class="stat-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-bold">Debt Balances</div>
         <span class="badge bg-secondary">Now</span>
       </div>
-      <canvas id="debtBarChart" height="240"></canvas>
-      <div class="text-muted small mt-2">
-        Total debt: <span class="fw-bold">${{ "%.0f"|format(summary.total_debt) }}</span>
-        • Weighted APR: <span class="fw-bold">{{ "%.2f"|format(summary.weighted_apr) }}%</span>
-      </div>
+      <canvas id="debtBarChart" height="220"></canvas>
+      <div class="text-muted small mt-2">Balances by account.</div>
     </div>
   </div>
 </div>
@@ -198,16 +123,12 @@
 
 {% block scripts %}
 <script>
-  const debts = [
-    {% for d in debts %}
-      { name: "{{ d.name|e }}", balance: {{ "%.2f"|format(d.balance) }}, apr: {{ "%.2f"|format(d.interest_rate) }} },
-    {% endfor %}
-  ];
-
   const obligations = {{ "%.2f"|format(summary.obligations) }};
   const freeCashflow = {{ "%.2f"|format(summary.cashflow) }};
 
+  const debtChart = {{ debt_chart|tojson }};
+
   initDtiChart(obligations, Math.max(freeCashflow, 0));
-  initDebtBarChart(debts);
+  initDebtBarChart(debtChart);
 </script>
 {% endblock %}
