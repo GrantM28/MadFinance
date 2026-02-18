@@ -206,14 +206,15 @@ def dashboard():
         "ava": {"months": ava_m, "date": ava_date, "interest": ava_int},
         "snb": {"months": snb_m, "date": snb_date, "interest": snb_int},
     }
-    
+
     summary["ava_unreachable"] = (ava_int == float("inf"))
     summary["snb_unreachable"] = (snb_int == float("inf"))
 
     return render_template(
         'dashboard.html',
         groups=paycheck_groups,
-        summary=summary
+        summary=summary,
+        debts=debts
     )
 
 @app.route('/strategy', methods=['POST'])

@@ -1,127 +1,154 @@
 {% extends 'base.html' %}
 {% block content %}
 
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Dashboard</h2>
+    <div class="text-muted">Visualization-first: DTI, debt, payoff speed, and interest damage.</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-custom" type="button" data-bs-toggle="collapse" data-bs-target="#strategyPanel">
+      <i class="bi bi-sliders me-1"></i> Strategy Controls
+    </button>
+  </div>
+</div>
+
+<!-- KPIs -->
 <div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="metric-label">Debt Monster Balance</div>
-            <div class="metric-value text-danger">${{ "%.2f"|format(summary.total_debt) }}</div>
-            <small class="text-muted">Weighted APR: {{ "%.2f"|format(summary.weighted_apr) }}%</small>
-        </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="metric-label">DTI</div>
+      <div class="metric-value {{ 'text-danger' if summary.dti >= 36 else 'text-info' }}">
+        {{ "%.1f"|format(summary.dti) }}%
+      </div>
+      <small class="text-muted">Goal: under 36%</small>
     </div>
+  </div>
 
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="metric-label">DTI (Financial Health)</div>
-            <div class="metric-value {{ 'text-danger' if summary.dti > 36 else 'text-info' }}">{{ "%.1f"|format(summary.dti) }}%</div>
-            <small class="text-muted">Goal: Stay below 36%</small>
-        </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="metric-label">Total Debt</div>
+      <div class="metric-value text-danger">${{ "%.0f"|format(summary.total_debt) }}</div>
+      <small class="text-muted">Weighted APR: {{ "%.2f"|format(summary.weighted_apr) }}%</small>
     </div>
+  </div>
 
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="metric-label">Monthly "Attack Power"</div>
-            <div class="metric-value text-success">${{ "%.2f"|format(summary.extra_monthly) }}</div>
-            <small class="text-muted">Used for Snowball/Avalanche sim</small>
-        </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="metric-label">Monthly Attack Power</div>
+      <div class="metric-value text-success">${{ "%.0f"|format(summary.extra_monthly) }}</div>
+      <small class="text-muted">Extra applied after minimums</small>
     </div>
+  </div>
 </div>
 
-<div class="stat-card mb-4">
+<!-- Strategy controls (collapsed) -->
+<div class="collapse mb-4" id="strategyPanel">
+  <div class="stat-card">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div>
-            <h5 class="fw-bold m-0">Strategy Controls</h5>
-            <div class="small fw-medium" style="color:#d1d5db;">
-                Override attack amount or use your free cashflow automatically.
-            </div>
+      <div>
+        <h5 class="fw-bold m-0">Strategy Controls</h5>
+        <div class="small" style="color:#d1d5db;">
+          Set method + optionally override attack $/mo. Leave blank to use free cashflow.
         </div>
+      </div>
 
-        <form class="d-flex flex-wrap gap-2 align-items-center" action="{{ url_for('set_strategy') }}" method="POST">
-            <select name="method" class="form-select" style="min-width: 180px;">
-                <option value="avalanche" {{ 'selected' if summary.strategy_method == 'avalanche' else '' }}>Avalanche (Highest APR)</option>
-                <option value="snowball" {{ 'selected' if summary.strategy_method == 'snowball' else '' }}>Snowball (Smallest Balance)</option>
-            </select>
+      <form class="d-flex flex-wrap gap-2 align-items-center" action="{{ url_for('set_strategy') }}" method="POST">
+        <select name="method" class="form-select" style="min-width: 200px;">
+          <option value="avalanche" {{ 'selected' if summary.strategy_method == 'avalanche' else '' }}>Avalanche (Highest APR)</option>
+          <option value="snowball" {{ 'selected' if summary.strategy_method == 'snowball' else '' }}>Snowball (Smallest Balance)</option>
+        </select>
 
-            <input name="extra_override" type="number" step="0.01" class="form-control"
-                   placeholder="Override $/mo (blank = auto)">
-            <button class="btn btn-primary">Apply</button>
-        </form>
+        <input name="extra_override" type="number" step="0.01" class="form-control"
+               placeholder="Override $/mo (blank = auto)" style="min-width: 260px;">
+        <button class="btn btn-primary">Apply</button>
+      </form>
     </div>
+  </div>
 </div>
 
-<div class="row g-4 mb-5">
-    <div class="col-md-6">
-        <div class="stat-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold m-0 text-primary">Avalanche Forecast</h5>
-                <span class="badge bg-secondary">Math-optimal</span>
-            </div>
-            <div class="metric-value">{{ summary.ava.months }} months</div>
-            <div class="text-muted">
-                {% if summary.ava.date %}
-                    Debt-free: <span class="text-white fw-bold">{{ summary.ava.date.strftime('%m/%d/%Y') }}</span>
-                {% else %}
-                    Debt-free: <span class="text-danger fw-bold">Not reachable (payments too low)</span>
-                {% endif %}
-            </div>
-            <div class="text-muted">Interest paid: <span class="text-white fw-bold">
-                {% if summary.ava_unreachable %}∞{% else %}${{ "%.0f"|format(summary.ava.interest) }}{% endif %}
-            </span></div>
-        </div>
+<!-- CHART GRID -->
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-bold">DTI Split</div>
+        <span class="badge bg-secondary">Monthly</span>
+      </div>
+      <canvas id="dtiChart" height="240"></canvas>
+      <div class="text-muted small mt-2">
+        Obligations: ${{ "%.0f"|format(summary.obligations) }} &nbsp;•&nbsp; Free: ${{ "%.0f"|format(summary.cashflow) }}
+      </div>
     </div>
+  </div>
 
-    <div class="col-md-6">
-        <div class="stat-card">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold m-0 text-info">Snowball Forecast</h5>
-                <span class="badge bg-secondary">Motivation-optimal</span>
-            </div>
-            <div class="metric-value">{{ summary.snb.months }} months</div>
-            <div class="text-muted">
-                {% if summary.snb.date %}
-                    Debt-free: <span class="text-white fw-bold">{{ summary.snb.date.strftime('%m/%d/%Y') }}</span>
-                {% else %}
-                    Debt-free: <span class="text-danger fw-bold">Not reachable (payments too low)</span>
-                {% endif %}
-            </div>
-            <div class="text-muted">Interest paid: <span class="text-white fw-bold">
-                {% if summary.snb_unreachable %}∞{% else %}${{ "%.0f"|format(summary.snb.interest) }}{% endif %}
-            </span></div>
-        </div>
+  <div class="col-lg-8">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-bold">Debt Breakdown</div>
+        <span class="badge bg-secondary">Balances</span>
+      </div>
+      <canvas id="debtBarChart" height="240"></canvas>
+      <div class="text-muted small mt-2">
+        Tip: this chart is what makes “where the debt is” instantly obvious.
+      </div>
     </div>
+  </div>
 </div>
 
-<h4 class="fw-bold mb-4">The Cashflow Schedule</h4>
-{% for group in groups %}
-<div class="stat-card mb-4 pay-group-{{ loop.index % 3 + 1 }}">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold m-0 text-primary">Check Date: {{ group.date.strftime('%m/%d/%Y') }}</h5>
-        <span class="remainder-pill">Left to Attack Debt: ${{ "%.2f"|format(group.remainder) }}</span>
+<div class="row g-4 mt-1">
+  <div class="col-lg-12">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-bold">Payoff Comparison</div>
+        <span class="badge bg-secondary">Avalanche vs Snowball</span>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <canvas id="payoffMonthsChart" height="220"></canvas>
+          <div class="text-muted small mt-2">
+            Months to debt-free (with your current attack power).
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <canvas id="payoffInterestChart" height="220"></canvas>
+          <div class="text-muted small mt-2">
+            Total interest paid (lower is better).
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 text-muted small">
+        Avalanche: {{ summary.ava.months }} mo{% if summary.ava.date %} ({{ summary.ava.date.strftime('%m/%d/%Y') }}){% endif %}
+        • Snowball: {{ summary.snb.months }} mo{% if summary.snb.date %} ({{ summary.snb.date.strftime('%m/%d/%Y') }}){% endif %}
+      </div>
     </div>
-
-    <table class="table table-dark table-sm border-0 m-0">
-        <thead>
-            <tr class="label">
-                <th>DUE DATE</th>
-                <th>EXPENSE</th>
-                <th class="text-end">AMOUNT</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for b in group.bills %}
-            <tr>
-                <td>{{ b.due_date.strftime('%m/%d') }}</td>
-                <td>{{ b.name }}</td>
-                <td class="text-end text-danger">-${{ "%.2f"|format(b.amount) }}</td>
-            </tr>
-            {% endfor %}
-            <tr class="border-top border-secondary">
-                <td colspan="2" class="text-muted small">Check Amount: +${{ "%.2f"|format(group.income) }}</td>
-                <td class="text-end fw-bold">Check Remainder: ${{ "%.2f"|format(group.remainder) }}</td>
-            </tr>
-        </tbody>
-    </table>
+  </div>
 </div>
-{% endfor %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Build JSON payloads for charts
+  const debts = [
+    {% for d in debts %}
+      { name: "{{ d.name|e }}", balance: {{ "%.2f"|format(d.balance) }}, apr: {{ "%.2f"|format(d.interest_rate) }} },
+    {% endfor %}
+  ];
+
+  const obligations = {{ "%.2f"|format(summary.obligations) }};
+  const freeCashflow = {{ "%.2f"|format(summary.cashflow) }};
+
+  const payoff = {
+    avalanche: { months: {{ summary.ava.months }}, interest: {{ "0" if summary.ava_unreachable else ("%.2f"|format(summary.ava.interest)) }} },
+    snowball:  { months: {{ summary.snb.months }}, interest: {{ "0" if summary.snb_unreachable else ("%.2f"|format(summary.snb.interest)) }} }
+  };
+
+  initDtiChart(obligations, Math.max(freeCashflow, 0));
+  initDebtBarChart(debts);
+  initPayoffCompareCharts(payoff);
+</script>
 {% endblock %}
