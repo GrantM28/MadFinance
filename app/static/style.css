@@ -83,7 +83,7 @@ body {
 
 /* Form labels (your legibility fix, refined) */
 label.small.text-muted {
-    color: var(--form-label) !important;
+    
     font-weight: 800 !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
