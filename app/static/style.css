@@ -4,85 +4,35 @@
     --card-bg: #1e293b;
     --primary: #38bdf8;
     --accent: #818cf8;
+    --text-muted: #94a3b8;
 }
 
-body { background-color: var(--bg-main); color: #f8fafc; overflow-x: hidden; }
+body { background-color: var(--bg-main); color: #f8fafc; font-family: 'Inter', sans-serif; }
 
-.sidebar {
-    width: 260px;
-    height: 100vh;
-    background: var(--side-nav);
-    position: fixed;
-    border-right: 1px solid #334155;
-}
-
+/* Sidebar & Layout */
+.sidebar { width: 260px; height: 100vh; background: var(--side-nav); position: fixed; border-right: 1px solid #334155; }
 .content-area { margin-left: 260px; min-height: 100vh; }
-
-.nav-link { color: #94a3b8; font-weight: 500; border-radius: 8px; margin-bottom: 5px; }
+.nav-link { color: var(--text-muted); font-weight: 500; border-radius: 8px; margin-bottom: 5px; transition: 0.2s; }
 .nav-link:hover { background: rgba(56, 189, 248, 0.1); color: var(--primary); }
-.nav-link.active { background: var(--primary); color: #fff; }
+.nav-link.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
 
-.stat-card {
-    background: var(--card-bg);
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 1.5rem;
-}
+/* Stat Cards & Metrics */
+.stat-card { background: var(--card-bg); border: 1px solid #334155; border-radius: 16px; padding: 1.5rem; transition: 0.3s; }
+.stat-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 
-.chart-container {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #334155;
-}
+.metric-label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+.metric-value { font-size: 1.8rem; font-weight: 800; margin-top: 0.4rem; color: #fff; }
 
-.stat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--primary);
-}
-
-.metric-label {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: 700;
-}
-
-.metric-value {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin-top: 0.5rem;
-}
-
-.list-container {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1.25rem;
-    height: 100%;
-}
-
-.data-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.data-item:last-child { border-bottom: none; }
-
-.btn-primary { background-color: var(--primary); border: none; font-weight: 600; }
-.btn-outline-custom { border: 1px solid var(--primary); color: var(--primary); font-size: 0.8rem; }
+/* FORM FIX: Legibility for Add Source/Debt/Bills */
 .form-control, .form-select {
-    background-color: #0f172a;
-    border: 1px solid var(--border-color);
-    color: white;
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+    color: #ffffff !important; /* Forces text to be white */
+    font-weight: 500;
 }
-.form-control:focus { background-color: #0f172a; color: white; border-color: var(--primary); }
+
+.form-control::placeholder { color: #475569; }
+.form-control:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); outline: none; }
+
+/* Dashboard Chart Size */
+.chart-container { max-width: 450px; margin: 0 auto; }
