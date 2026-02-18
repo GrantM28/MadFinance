@@ -140,7 +140,7 @@
                         </td>
                         <td>${{ "%.2f"|format(d.min_payment) }}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('delete_item', category='debt', id=d.id) }}"
+                            <a href="{{ url_for('delete_item', category='debt', item_id=d.id) }}"
                                class="btn btn-sm btn-outline-danger border-0" title="Delete">
                                 <i class="bi bi-trash"></i>
                             </a>
