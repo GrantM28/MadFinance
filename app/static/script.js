@@ -128,3 +128,44 @@ function initPayoffCompareCharts(payoff) {
     });
   }
 }
+
+(function initScheduleKindSync() {
+  function syncRow(form) {
+    const sel = form.querySelector('.js-kind-select');
+    const kindInput = form.querySelector('.js-kind-input');
+    const customInput = form.querySelector('.js-custom-name');
+    if (!sel || !kindInput || !customInput) return;
+
+    const opt = sel.options[sel.selectedIndex];
+    const kind = (opt?.dataset?.kind || 'debt').toLowerCase();
+    kindInput.value = kind;
+
+    const isCustom = sel.value === "__custom__";
+    customInput.disabled = !isCustom;
+    if (!isCustom) customInput.value = "";
+  }
+
+  function init() {
+    // only on schedule page
+    if (!document.querySelector('.schedule-grid')) return;
+
+    const forms = document.querySelectorAll('form.addform');
+    forms.forEach(form => {
+      const sel = form.querySelector('.js-kind-select');
+      if (!sel) return;
+
+      // initial state
+      syncRow(form);
+
+      // update on change
+      sel.addEventListener('change', () => syncRow(form));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+

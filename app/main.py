@@ -351,6 +351,7 @@ def monthly_schedule():
 
     debts = Debt.query.order_by(Debt.name.asc()).all()
     bills = Bill.query.order_by(Bill.name.asc()).all()
+    incomes = Income.query.order_by(Income.name.asc()).all()
 
     options = []
     for d in debts:
@@ -359,19 +360,82 @@ def monthly_schedule():
         options.append({"label": f"Bill: {b.name}", "name": b.name, "kind": "bill"})
     options.append({"label": "Other (custom)", "name": "__custom__", "kind": "other"})
 
-    # Build calendar cells (pad to start weekday)
+    # ---------- Month income (exact if next_pay_date exists) ----------
+    def _add_months(dt: date, months: int) -> date:
+        yy = dt.year + (dt.month - 1 + months) // 12
+        mm = (dt.month - 1 + months) % 12 + 1
+        dd = min(dt.day, calendar.monthrange(yy, mm)[1])
+        return date(yy, mm, dd)
+
+    def income_in_month(inc: Income, month_start: date, month_end: date) -> float:
+        # If no next pay date, we can't do "exact paycheck count"
+        if not inc.next_pay_date:
+            # fallback: normalized monthly for this one income
+            if inc.frequency == "Bi-weekly":
+                return (inc.amount * 26) / 12
+            if inc.frequency == "Weekly":
+                return (inc.amount * 52) / 12
+            return inc.amount
+
+        freq = (inc.frequency or "Monthly").strip()
+        amt = float(inc.amount)
+
+        # move forward to first pay date >= month_start
+        d = inc.next_pay_date
+        safety = 0
+        while d < month_start and safety < 500:
+            safety += 1
+            if freq == "Weekly":
+                d = d + timedelta(days=7)
+            elif freq == "Bi-weekly":
+                d = d + timedelta(days=14)
+            else:
+                d = _add_months(d, 1)
+
+        # count occurrences within the month
+        total = 0.0
+        safety = 0
+        while d <= month_end and safety < 500:
+            safety += 1
+            total += amt
+            if freq == "Weekly":
+                d = d + timedelta(days=7)
+            elif freq == "Bi-weekly":
+                d = d + timedelta(days=14)
+            else:
+                d = _add_months(d, 1)
+
+        return total
+
+    any_has_next = any(i.next_pay_date for i in incomes)
+    if any_has_next:
+        month_income = sum(income_in_month(i, start, end) for i in incomes)
+    else:
+        # existing normalized monthly income
+        month_income = get_monthly_income_value()
+
+    planned_total = sum(float(it.amount) for it in items)
+    remainder = month_income - planned_total
+    coverage_pct = (planned_total / month_income * 100.0) if month_income > 0 else 0.0
+
+    schedule_summary = {
+        "month_income": month_income,
+        "planned_total": planned_total,
+        "remainder": remainder,
+        "coverage_pct": coverage_pct,
+        "any_has_next": any_has_next
+    }
+
+    # ---------- Build calendar cells (pad to start weekday) ----------
     first_day = date(y, m, 1)
     last_day_num = calendar.monthrange(y, m)[1]
-    first_weekday = (first_day.weekday() + 1) % 7  # convert Mon=0..Sun=6 -> Sun=0..Sat=6
+    first_weekday = (first_day.weekday() + 1) % 7  # Sun=0..Sat=6
 
     calendar_cells = []
     for _ in range(first_weekday):
         calendar_cells.append({"is_pad": True})
-
     for day in range(1, last_day_num + 1):
         calendar_cells.append({"is_pad": False, "date": date(y, m, day)})
-
-    # pad end to complete last week row
     while len(calendar_cells) % 7 != 0:
         calendar_cells.append({"is_pad": True})
 
@@ -384,8 +448,10 @@ def monthly_schedule():
         options=options,
         month_label=month_label,
         month_param=month_param,
-        calendar_cells=calendar_cells
+        calendar_cells=calendar_cells,
+        schedule_summary=schedule_summary
     )
+
 
 @app.route("/schedule/add", methods=["POST"])
 def add_schedule_item():

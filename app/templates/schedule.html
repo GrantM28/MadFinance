@@ -7,6 +7,65 @@
     <div class="text-muted">{{ month_label }} — planned payments by day.</div>
   </div>
 
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="metric-label">Month Income</div>
+      <div class="metric-value" style="color: var(--primary)">
+        ${{ "%.2f"|format(schedule_summary.month_income) }}
+      </div>
+      <div class="small text-muted mt-1">
+        {% if schedule_summary.any_has_next %}
+          based on paycheck dates
+        {% else %}
+          normalized monthly
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="metric-label">Planned Payments</div>
+      <div class="metric-value danger">
+        ${{ "%.2f"|format(schedule_summary.planned_total) }}
+      </div>
+      <div class="small text-muted mt-1">
+        {{ "%.1f"|format(schedule_summary.coverage_pct) }}% of income scheduled
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="metric-label">Remainder</div>
+      <div class="metric-value {{ 'danger' if schedule_summary.remainder < 0 else 'success' }}">
+        ${{ "%.2f"|format(schedule_summary.remainder) }}
+      </div>
+      <div class="small text-muted mt-1">
+        after scheduled items
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="metric-label">Status</div>
+      <div class="metric-value {{ 'danger' if schedule_summary.remainder < 0 else '' }}">
+        {% if schedule_summary.remainder < 0 %}Overbooked{% else %}Good{% endif %}
+      </div>
+      <div class="small text-muted mt-1">
+        {% if schedule_summary.remainder < 0 %}
+          trim or move payments
+        {% else %}
+          you can “attack” debt with the rest
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
   <form class="d-flex gap-2" method="GET" action="{{ url_for('monthly_schedule') }}">
     <input type="month" class="form-control" name="month" value="{{ month_param }}">
     <button class="btn btn-outline-custom">Go</button>
@@ -70,20 +129,21 @@
               <input type="hidden" name="pay_date" value="{{ d.strftime('%Y-%m-%d') }}">
               <input type="hidden" name="month_param" value="{{ month_param }}">
 
-              <select name="sel_name" class="form-select form-select-sm">
+                <select name="sel_name" class="form-select form-select-sm js-kind-select">
                 {% for opt in options %}
-                  <option value="{{ opt.name }}">{{ opt.label }}</option>
+                    <option value="{{ opt.name }}" data-kind="{{ opt.kind }}">{{ opt.label }}</option>
                 {% endfor %}
-              </select>
+                </select>
 
-              <input name="custom_name" class="form-control form-control-sm" placeholder="Custom name (if Other)">
+              <input name="custom_name" class="form-control form-control-sm js-custom-name"
+                placeholder="Custom name (if Other)" disabled>
 
               <div class="d-flex gap-2">
                 <input name="amount" type="number" step="0.01" class="form-control form-control-sm" placeholder="$" required>
                 <button class="btn btn-primary btn-sm">Add</button>
               </div>
 
-              <input type="hidden" name="kind" value="debt">
+              <input type="hidden" name="kind" value="debt" class="js-kind-input">
             </form>
           </div>
 
